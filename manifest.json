@@ -1,0 +1,16 @@
+{
+  "name": "RackSorter",
+  "short_name": "RackSorter",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3081/3081648.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

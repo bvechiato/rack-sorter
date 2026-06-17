@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RackSorter</title>
+    <link rel="stylesheet" href="./frontend/style.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+
+    <header>
+        <h1>RackSorter //</h1>
+        <div style="font-size: 11px; color: var(--accent); font-weight: 800; background: var(--accent-dim); padding: 4px 10px; border-radius: 20px; letter-spacing: 0.5px;">SANDBOX ACTIVE</div>
+    </header>
+
+    <div class="search-action-bar">
+        <div class="upload-zone-btn" title="Upload Reference Target Image">
+            <span style="font-size: 18px;">📸</span>
+            <input type="file" id="image_loader" accept="image/*">
+        </div>
+        <div class="keyword-wrapper">
+            <input type="text" id="confirmed_keyword" placeholder="Upload or enter search keyword...">
+        </div>
+    </div>
+
+    <div id="keyword_suggestions_wrapper" style="display: none; margin-bottom: 16px;">
+        <label>We think these words best match your image (Tap to choose target)</label>
+        <div class="condition-chips" id="suggested_keywords_container"></div>
+    </div>
+
+    <div class="pref-container">
+        <div class="pref-summary" id="pref_toggle_btn">Search filters</div>
+        <div class="pref-content" id="pref_content_panel">   
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <div style="flex: 1;">
+                    <label>Size</label>
+                    <select id="size_selector">
+                        <option value="">Select size...</option>
+                        <option value="1226">XXXS / UK 0</option>
+                        <option value="102">XXS / UK 2</option>
+                        <option value="2">XS / UK 4-6</option>
+                        <option value="3">S / UK 8-10</option>
+                        <option value="4">M / UK 12-14</option>
+                        <option value="5">L / UK 16-18</option>
+                        <option value="6">XL / UK 20-22</option>
+                        <option value="7">XXL / UK 24-26</option>
+                        <option value="310">XXXL / UK 28-30</option>
+                        <option value="311">4XL / UK 32-34</option>
+                        <option value="312">5XL / UK 36-38</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label>Max Budget</label>
+                    <input type="number" id="max_price" placeholder="£ Limit">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label>Target Category</label>
+                <select id="category_selector">
+                    <option value="See all">See all</option>
+                    <option value="Outerwear">Outerwear</option>
+                    <option value="Jumpers & sweaters">Jumpers & sweaters</option>
+                    <option value="Suits & blazers">Suits & blazers</option>
+                    <option value="Dresses">Dresses</option>
+                    <option value="Skirts">Skirts</option>
+                    <option value="Skorts">Skorts</option>
+                    <option value="Tops & t-shirts">Tops & t-shirts</option>
+                    <option value="Jeans">Jeans</option>
+                    <option value="Trousers & leggings">Trousers & leggings</option>
+                    <option value="Shorts & cropped trousers">Shorts & cropped trousers</option>
+                    <option value="Jumpsuits & playsuits">Jumpsuits & playsuits</option>
+                    <option value="Swimwear">Swimwear</option>
+                    <option value="Lingerie & nightwear">Lingerie & nightwear</option>
+                    <option value="Maternity clothes">Maternity clothes</option>
+                    <option value="Activewear">Activewear</option>
+                    <option value="Shoes">Shoes</option>
+                    <option value="Bags">Bags</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label>Primary Colour Cluster</label>
+                <div class="color-swatch-grid" id="color_swatch_container">
+                    <div class="swatch c-black" data-color="Black" title="Black"></div>
+                    <div class="swatch c-grey" data-color="Grey" title="Grey"></div>
+                    <div class="swatch c-white" data-color="White" title="White"></div>
+                    <div class="swatch c-cream" data-color="Cream" title="Cream"></div>
+                    <div class="swatch c-beige" data-color="Beige" title="Beige"></div>
+                    <div class="swatch c-apricot" data-color="Apricot" title="Apricot"></div>
+                    <div class="swatch c-orange" data-color="Orange" title="Orange"></div>
+                    <div class="swatch c-coral" data-color="Coral" title="Coral"></div>
+                    <div class="swatch c-red" data-color="Red" title="Red"></div>
+                    <div class="swatch c-burgundy" data-color="Burgundy" title="Burgundy"></div>
+                    <div class="swatch c-pink" data-color="Pink" title="Pink"></div>
+                    <div class="swatch c-rose" data-color="Rose" title="Rose"></div>
+                    <div class="swatch c-purple" data-color="Purple" title="Purple"></div>
+                    <div class="swatch c-lilac" data-color="Lilac" title="Lilac"></div>
+                    <div class="swatch c-lightblue" data-color="Light blue" title="Light blue"></div>
+                    <div class="swatch c-blue" data-color="Blue" title="Blue"></div>
+                    <div class="swatch c-navy" data-color="Navy" title="Navy"></div>
+                    <div class="swatch c-turquoise" data-color="Turquoise" title="Turquoise"></div>
+                    <div class="swatch c-mint" data-color="Mint" title="Mint"></div>
+                    <div class="swatch c-green" data-color="Green" title="Green"></div>
+                    <div class="swatch c-darkgreen" data-color="Dark green" title="Dark green"></div>
+                    <div class="swatch c-khaki" data-color="Khaki" title="Khaki"></div>
+                    <div class="swatch c-brown" data-color="Brown" title="Brown"></div>
+                    <div class="swatch c-mustard" data-color="Mustard" title="Mustard"></div>
+                    <div class="swatch c-yellow" data-color="Yellow" title="Yellow"></div>
+                    <div class="swatch c-silver" data-color="Silver" title="Silver"></div>
+                    <div class="swatch c-gold" data-color="Gold" title="Gold"></div>
+                    <div class="swatch c-multi" data-color="Multi" title="Multi-Colour"></div>
+                    <div class="swatch c-clear" data-color="Clear" title="Clear/Transparent"></div>
+                </div>
+            </div>
+
+            <div>
+                <label>Item Condition</label>
+                <div class="condition-chips" id="condition_container">
+                    <div class="chip" data-value="6">New with tags</div>
+                    <div class="chip" data-value="1">New without tags</div>
+                    <div class="chip" data-value="2">Very Good</div>
+                    <div class="chip" data-value="3">Good</div>
+                </div>
+            </div>
+        </div>
+        <button id="trigger_scrape_btn" class="btn-inline">Scrape</button>
+    </div>
+
+    <div id="loading">Processing Vector Sandbox...</div>
+
+    <div class="results-grid" id="gallery"></div>
+
+    <div class="panel-overlay" id="panel_overlay"></div>
+    <div class="fab-menu" id="fab_hamburger" title="Adjust Weights Matrix">☰</div>
+
+    <div class="side-panel" id="slider_panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 16px;">🧬 Vector Weight Matrix</h3>
+            <span id="close_panel" style="cursor: pointer; font-size: 20px; color: var(--text-muted);">&times;</span>
+        </div>
+        <div id="slider_container">
+            <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin: 20px 0;">Upload an archetype image to extract deep vector dimensions.</p>
+        </div>
+        <button id="rerank_btn" style="margin-top: 12px;">Run Strategic Sort</button>
+    </div>
+
+    <script type="module" src="./frontend/main.js"></script>
+</body>
+</html>
