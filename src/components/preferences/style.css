@@ -1,0 +1,85 @@
+.size-picker-container { margin-bottom: 12px; }
+
+.size-dropdown {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.size-tags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.size-tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Pushes text left, button right */
+  border-radius: 20px;
+  background: #222;
+  border: 1px solid var(--border);
+  color: #fff; /* Improved contrast for #222 background */
+  font-size: 14px;
+  padding: 6px 4px 6px 12px; /* Extra left padding for aesthetics */
+  max-width: 100%;
+}
+
+.size-tag-text {
+  flex: 3; /* Represents the 75% portion */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 8px;
+}
+
+.remove-btn {
+  flex: 1; /* Represents the 25% portion */
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.remove-btn:hover {
+  color: #fff;
+}
+
+/* COLOUR PICKER */
+.color-picker-container { margin-bottom: 16px; }
+
+.color-swatch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.swatch {
+  width: 44px; /* Slightly larger for thumb-friendly touch */
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.swatch.selected {
+  border-color: #000;
+  transform: scale(1.15);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.checkmark {
+  font-size: 18px;
+  color: white;
+  text-shadow: 0 0 3px rgba(0,0,0,0.8);
+}

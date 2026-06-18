@@ -50,6 +50,24 @@ VINTED_COLOUR_MAP = {
     "Clear": "32"
 }
 
+COLOUR_MAP: dict[str, list[str]] = {
+    "Black": [VINTED_COLOUR_MAP["Black"], VINTED_COLOUR_MAP["Grey"]],
+    "Grey": [VINTED_COLOUR_MAP["Grey"], VINTED_COLOUR_MAP["Silver"]],
+    "White": [VINTED_COLOUR_MAP["White"]],
+    "Cream": [VINTED_COLOUR_MAP["Cream"], VINTED_COLOUR_MAP["Beige"]],
+    "Orange": [VINTED_COLOUR_MAP["Apricot"], VINTED_COLOUR_MAP["Coral"]],
+    "Red": [VINTED_COLOUR_MAP["Red"], VINTED_COLOUR_MAP["Burgundy"]],
+    "Pink": [VINTED_COLOUR_MAP["Pink"], VINTED_COLOUR_MAP["Rose"]],
+    "Purple": [VINTED_COLOUR_MAP["Purple"], VINTED_COLOUR_MAP["Lilac"]],
+    "Blue": [VINTED_COLOUR_MAP["Blue"], VINTED_COLOUR_MAP["Light blue"], VINTED_COLOUR_MAP["Navy"]],
+    "Turquoise": [VINTED_COLOUR_MAP["Turquoise"]],
+    "Green": [VINTED_COLOUR_MAP["Green"], VINTED_COLOUR_MAP["Dark green"], VINTED_COLOUR_MAP["Mint"], VINTED_COLOUR_MAP["Khaki"]],
+    "Brown": [VINTED_COLOUR_MAP["Brown"], VINTED_COLOUR_MAP["Khaki"]],
+    "Yellow": [VINTED_COLOUR_MAP["Yellow"], VINTED_COLOUR_MAP["Mustard"], VINTED_COLOUR_MAP["Gold"]],
+    "Multi": [VINTED_COLOUR_MAP["Multi"]],
+    "Clear": [VINTED_COLOUR_MAP["Clear"]]
+}
+
 VINTED_CATEGORY_MAP = {
     "All clothes": "4", 
     "Outerwear": "1037",

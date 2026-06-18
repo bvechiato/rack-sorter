@@ -6,11 +6,7 @@ from typing import List, Optional
 
 def scrape_vinted_pool(keyword: str, query_params: str) -> list:
     """Hits the public Vinted catalog endpoint with exact profile constraints."""
-    encoded_keyword = keyword.replace(" ", "+")
-    url = f"https://www.vinted.co.uk/catalog?search_text={encoded_keyword}&order=newest_first"
-    
-    if query_params:
-        url += query_params
+    url = f"https://www.vinted.co.uk/catalog?&{query_params}&order=newest_first"
 
     print(f"\n[INFO] Target Scraping URL Generated: {url}\n")
 

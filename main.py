@@ -4,10 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from typing import List, Optional
+import os
 
-from backend.scraper import scrape_vinted_pool
-from backend.vector_engine import extract_tags_from_image, rank_pool_by_sliders
-from static.CONSTANTS import VINTED_CATEGORY_MAP, VINTED_COLOUR_MAP
+from backend.service.scraper import scrape_vinted_pool
+from backend.service.vector_engine import extract_tags_from_image, rank_pool_by_sliders
+from backend.service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
 
 app = FastAPI(title="RackSorter Unified Engine")
 
@@ -20,7 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+# Mount the React build output directory
+if os.path.exists("dist"):
+    app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
 
 @app.get("/")
 async def serve_frontend():
@@ -42,29 +45,34 @@ async def analyze_anchor_image(file: UploadFile = File(...)):
 @app.post("/fetch_initial")
 async def fetch_initial(
     keyword: str = Form(...),
-    size_id: Optional[str] = Form(None),
-    category_name: str = Form("All clothes"),
-    colour_name: str = Form(""),
-    max_price: Optional[str] = Form(None),
-    condition_id: Optional[List[str]] = Form(default=None)
+    selectedSizes: Optional[str] = Form(""),
+    selectedCategory: str = Form("All clothes"),
+    selectedColors: Optional[str] = Form(""),
+    maxPrice: Optional[str] = Form(None),
+    selectedConditions: Optional[str] = Form("")
 ):
-    catalog_id = VINTED_CATEGORY_MAP.get(category_name, "")
-    color_id = VINTED_COLOUR_MAP.get(colour_name, "")
+    catalog_id = VINTED_CATEGORY_MAP.get(selectedCategory, "")
+    colour_ids = []
+    for c_name in selectedColors.split(","):
+        colour_ids.extend(COLOUR_MAP.get(c_name))
 
-    query_params = f"search_text={keyword}"
+    query_params = f"search_text={keyword.replace(' ', '+')}"
     if catalog_id:
         query_params += f"&catalog[]={catalog_id}"
-    if color_id:
-        query_params += f"&color_ids[]={color_id}"
-    if size_id:
-        query_params += f"&size_ids[]={size_id}"
-    if max_price:
-        query_params += f"&price_to={max_price}&currency=GBP"
-    if condition_id:
-        for cid in condition_id:
+    if colour_ids:
+        for c_id in colour_ids:
+            query_params += f"&color_ids[]={c_id}"
+    if selectedSizes:
+        for size_id in selectedSizes.split(","):
+            query_params += f"&size_ids[]={size_id}"
+    if maxPrice:
+        query_params += f"&price_to={maxPrice}&currency=GBP"
+    if selectedConditions:
+        for cid in selectedConditions.split(","):
             if cid:
                 query_params += f"&status_ids[]={cid}"
 
+    print(f"\n[INFO] Constructed Query Parameters: {query_params}\n")
     items = scrape_vinted_pool(keyword, query_params)
     return {"pool": items}
 

@@ -4,7 +4,7 @@ import torch
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
 from curl_cffi import requests
-from static.CONSTANTS import CANDIDATE_TAGS
+from backend.service.static.CONSTANTS import CANDIDATE_TAGS
 
 # Fix potential proxy handshake drops with Hugging Face core repos
 os.environ["HF_HUB_DISABLE_PROXY"] = "1"
