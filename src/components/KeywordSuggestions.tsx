@@ -1,9 +1,14 @@
 import React from 'react';
 
-function KeywordSuggestions({ keywords, onSelectKeyword }) {
-  const [selected, setSelected] = React.useState(keywords[0]);
+type Props = {
+  keywords: string[];
+  onSelectKeyword: (k: string) => void;
+};
 
-  const handleSelect = (keyword) => {
+const KeywordSuggestions: React.FC<Props> = ({ keywords, onSelectKeyword }) => {
+  const [selected, setSelected] = React.useState<string | undefined>(keywords[0]);
+
+  const handleSelect = (keyword: string) => {
     setSelected(keyword);
     onSelectKeyword(keyword);
   };

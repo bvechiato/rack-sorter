@@ -2,7 +2,12 @@ import React from 'react';
 import { SIZES } from '../../static/constants';
 import './style.css';
 
-function SizePicker({ selectedSizes, toggleSize }) {
+type Props = {
+  selectedSizes: string[];
+  toggleSize: (v: string) => void;
+};
+
+const SizePicker: React.FC<Props> = ({ selectedSizes, toggleSize }) => {
   return (
     <div className="size-picker-container">
       <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>

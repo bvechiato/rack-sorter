@@ -3,7 +3,23 @@ import { CATEGORIES, CONDITION_OPTIONS } from '../../static/constants';
 import SizePicker from './SizePicker';
 import ColourPicker from './ColourPicker';
 
-function PreferencesPanel({
+type Props = {
+  selectedSizes: string[];
+  toggleSize: (v: string) => void;
+  maxPrice: string;
+  setMaxPrice: (v: string) => void;
+  selectedCategory: string;
+  setSelectedCategory: (v: string) => void;
+  selectedColors: string[];
+  toggleColour: (v: string) => void;
+  selectedConditions: string[];
+  toggleCondition: (v: string) => void;
+  isOpen: boolean;
+  toggleOpen: () => void;
+  onScrape: () => void;
+};
+
+const PreferencesPanel: React.FC<Props> = ({
   selectedSizes,
   toggleSize,
   maxPrice,
@@ -17,7 +33,7 @@ function PreferencesPanel({
   isOpen,
   toggleOpen,
   onScrape,
-}) {
+}) => {
   return (
     <div className="pref-container">
       <div

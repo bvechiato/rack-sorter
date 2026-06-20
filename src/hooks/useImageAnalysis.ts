@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { analyzeFile } from '../api';
 
 export function useImageAnalysis() {
-  const [confirmedKeyword, setConfirmedKeyword] = useState('');
-  const [suggestedKeywords, setSuggestedKeywords] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestedTags, setSuggestedTags] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [suggestedColours, setSuggestedColours] = useState([]);
-  const [suggestedCategory, setSuggestedCategory] = useState(null);
-  const [uploadId, setUploadId] = useState(null);
+  const [confirmedKeyword, setConfirmedKeyword] = useState<string>('');
+  const [suggestedKeywords, setSuggestedKeywords] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const [suggestedTags, setSuggestedTags] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [suggestedColours, setSuggestedColours] = useState<any[]>([]);
+  const [suggestedCategory, setSuggestedCategory] = useState<any>(null);
+  const [uploadId, setUploadId] = useState<any>(null);
 
-  const handleImageUpload = async (file) => {
+  const handleImageUpload = async (file: File | null) => {
     if (!file) return;
 
     setLoading(true);
@@ -37,7 +37,7 @@ export function useImageAnalysis() {
     }
   };
 
-  const selectKeyword = (keyword) => {
+  const selectKeyword = (keyword: string) => {
     setConfirmedKeyword(keyword);
   };
 

@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
-function SearchActionBar({ confirmedKeyword, setConfirmedKeyword, onImageUpload }) {
-  const [backgroundImage, setBackgroundImage] = useState(null);
+type Props = {
+  confirmedKeyword: string;
+  setConfirmedKeyword: (v: string) => void;
+  onImageUpload: (file: File | null) => void;
+};
 
-  const handleImageUpload = (event) => {
-    const file = event.target.files[0];
+const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeyword, onImageUpload }) => {
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setBackgroundImage(reader.result);
+        setBackgroundImage(String(reader.result));
       };
       reader.readAsDataURL(file);
       onImageUpload(file);

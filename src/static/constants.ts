@@ -1,4 +1,4 @@
-const SIZES = [
+export const SIZES: { value: string; label: string }[] = [
   { value: '1226', label: 'XXXS / UK 0' },
   { value: '102', label: 'XXS / UK 2' },
   { value: '2', label: 'XS / UK 4-6' },
@@ -12,7 +12,7 @@ const SIZES = [
   { value: '312', label: '5XL / UK 36-38' },
 ];
 
-const CATEGORIES = [
+export const CATEGORIES: string[] = [
   'See all',
   'Outerwear',
   'Jumpers & sweaters',
@@ -33,7 +33,7 @@ const CATEGORIES = [
   'Bags',
 ];
 
-const COLORS = [
+export const COLORS: { name: string; class: string }[] = [
   { name: 'Black', class: 'c-black' },
   { name: 'Grey', class: 'c-grey' },
   { name: 'White', class: 'c-white' },
@@ -51,11 +51,9 @@ const COLORS = [
   { name: 'Clear', class: 'c-clear' },
 ];
 
-const CONDITION_OPTIONS = [
+export const CONDITION_OPTIONS: { value: string; label: string }[] = [
   { value: '6', label: 'New with tags' },
   { value: '1', label: 'New without tags' },
   { value: '2', label: 'Very Good' },
   { value: '3', label: 'Good' },
 ];
-
-export { SIZES, CATEGORIES, COLORS, CONDITION_OPTIONS };

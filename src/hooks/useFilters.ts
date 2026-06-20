@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 
 export function useFilters() {
-  const [selectedSizes, setSelectedSizes] = useState([]);
-  const [maxPrice, setMaxPrice] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('See all');
-  const [selectedColors, setSelectedColors] = useState([]);
-  const [selectedConditions, setSelectedConditions] = useState([]);
+  const [selectedSizes, setSelectedSizes] = useState<any[]>([]);
+  const [maxPrice, setMaxPrice] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('See all');
+  const [selectedColors, setSelectedColors] = useState<any[]>([]);
+  const [selectedConditions, setSelectedConditions] = useState<any[]>([]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -33,13 +33,13 @@ export function useFilters() {
     localStorage.setItem('rs_condition_id', JSON.stringify(selectedConditions));
   }, [selectedConditions]);
 
-  const toggleSize = (size) => {
+  const toggleSize = (size: any) => {
     if (size === "See all") {
       setSelectedSizes([]);
       return;
-    } 
+    }
     if (selectedSizes.includes(size)) {
-      setSelectedSizes(prev => prev.filter(s => s !== size));
+      setSelectedSizes(prev => prev.filter((s: any) => s !== size));
       console.log(`[INFO] Removed size: ${size}`);
     } else {
       setSelectedSizes(prev => [...prev, size]);
@@ -47,9 +47,9 @@ export function useFilters() {
     }
   };
 
-  const toggleCondition = (condition) => {
+  const toggleCondition = (condition: any) => {
     if (selectedConditions.includes(condition)) {
-      setSelectedConditions(prev => prev.filter(c => c !== condition));
+      setSelectedConditions(prev => prev.filter((c: any) => c !== condition));
       console.log(`[INFO] Removed condition: ${condition}`);
     } else {
       setSelectedConditions(prev => [...prev, condition]);
@@ -57,14 +57,14 @@ export function useFilters() {
     }
   };
 
-  const toggleColour = (colour) => {
+  const toggleColour = (colour: any) => {
     if (colour === "None") {
       setSelectedColors([]);
       return;
     }
 
     if (selectedColors.includes(colour)) {
-      setSelectedColors(prev => prev.filter(c => c !== colour));
+      setSelectedColors(prev => prev.filter((c: any) => c !== colour));
       console.log(`[INFO] Removed colour: ${colour}`);
     } else {
       setSelectedColors(prev => [...prev, colour]);

@@ -1,6 +1,13 @@
 import React from 'react';
 
-function ProductGrid({ products }) {
+type Product = {
+  url?: string;
+  image_url?: string;
+  title?: string;
+  score?: number;
+};
+
+const ProductGrid: React.FC<{ products: Product[] }> = ({ products }) => {
   if (!products || products.length === 0) {
     return (
       <div className="results-grid">

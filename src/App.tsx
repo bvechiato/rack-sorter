@@ -23,11 +23,11 @@ function App() {
   const { weights, updateWeight } = useVectorWeights(imageState.suggestedTags);
   const { state: uiState, actions: uiActions } = useUIState();
 
-  const handleImageUpload = async (file) => {
+  const handleImageUpload = async (file: File | null) => {
     if (!file) return;
     try {
-      await imageActions.handleImageUpload(file);
-    } catch (err) {
+      await imageActions.handleImageUpload(file as File);
+    } catch (err: any) {
       alert(err.message);
     }
   };
@@ -36,7 +36,7 @@ function App() {
     try {
       await searchActions.scrapeProducts(imageState.uploadId, imageState.confirmedKeyword, filters);
       uiActions.setPanelOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       alert(err.message);
     }
   };
@@ -45,7 +45,7 @@ function App() {
     try {
       await searchActions.rerankProducts(weights);
       uiActions.setPanelOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       alert(err.message);
     }
   };

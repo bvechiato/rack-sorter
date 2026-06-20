@@ -1,6 +1,12 @@
+import React from 'react';
 import { COLORS } from '../../static/constants';
 
-function ColourPicker({ selectedColors, toggleColour }) {
+type Props = {
+  selectedColors: string[];
+  toggleColour: (c: string) => void;
+};
+
+const ColourPicker: React.FC<Props> = ({ selectedColors, toggleColour }) => {
   return (
     <div className="color-picker-container">
       <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>

@@ -1,6 +1,15 @@
 import React from 'react';
 
-function VectorWeightPanel({ isOpen, suggestedTags, weights, updateWeight, onRerank, onClose }) {
+type Props = {
+  isOpen: boolean;
+  suggestedTags: string[];
+  weights: Record<string, number>;
+  updateWeight: (tag: string, value: string | number) => void;
+  onRerank: () => void;
+  onClose: () => void;
+};
+
+const VectorWeightPanel: React.FC<Props> = ({ isOpen, suggestedTags, weights, updateWeight, onRerank, onClose }) => {
   return (
     <div className={`side-panel ${isOpen ? 'active' : ''}`}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>

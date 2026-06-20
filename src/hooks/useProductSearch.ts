@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { fetchInitial, rerank } from '../api';
 
 export function useProductSearch() {
-  const [currentPool, setCurrentPool] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [currentPool, setCurrentPool] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const scrapeProducts = async (uploadId, keyword, filters) => {
+  const scrapeProducts = async (uploadId: any, keyword: string, filters: any) => {
     if (!keyword.trim()) {
       throw new Error('Please provide or parse a lookup keyword first.');
     }
@@ -34,7 +34,7 @@ export function useProductSearch() {
     }
   };
 
-  const rerankProducts = async (weights) => {
+  const rerankProducts = async (weights: any) => {
     if (!currentPool.length) {
       throw new Error('Run an initial scraping pass before sorting vectors.');
     }
