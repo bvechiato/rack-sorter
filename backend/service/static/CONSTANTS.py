@@ -1,21 +1,26 @@
 CANDIDATE_TAGS = [
-    # Baseline Textures
-    "canvas", "corduroy", "fleece", "leather", "silk", "satin", "velvet", 
-    "knit", "crochet", "wool", "nylon", "mesh", "sheer", "lace", "linen",
+    # Necklines (Crucial for tops/dresses)
+    "v-neck", "crew neck", "scoop neck", "square neck", "halter neck", 
+    "turtleneck", "off-shoulder", "cowl neck", "polo collar",
     
-    # Simple Visual states
-    "distressed", "faded", "washed", "puffer", "quilted", "ruched", "pleated"
+    # Sleeves
+    "sleeveless", "short sleeve", "long sleeve", "puff sleeve", 
+    "cap sleeve", "bell sleeve", "raglan sleeve",
     
-    # High-Volume Fits
-    "oversized", "baggy", "cropped", "boxy", "wide leg", "straight leg",
+    # Lengths
+    "cropped", "mini", "midi", "maxi", "knee-length", "full-length",
     
-    # Marketplace Buzzword Eras/Aesthetics
-    "vintage", "retro", "Y2K", "90s", "grunge", "goth", "skater", 
-    "streetwear", "gorpcore", "boho", "workwear", "utility", "biker",
+    # Trousers/Bottoms
+    "high-waisted", "low-rise", "wide leg", "straight leg", "tapered", 
+    "flared", "bootcut", "cargo",
     
-    # Simple Visual Patterns
-    "striped", "check", "plaid", "camo", "floral", "graphic", 
-    "zip up", "button up", "hooded", "cargo pockets"
+    # Closures/Features
+    "button-down", "zipper", "wrap-around", "drawstring", "elastic waist",
+    "cut-out", "slit", "peplum", "asymmetric",
+
+    # Patterns/Prints
+    "floral", "striped", "polka dot", "plaid", "animal print", "geometric", "paisley", "camouflage",
+    "ruched waist", "peplum", "collared", "long sleeve"
 ]
 
 VINTED_COLOUR_MAP = {
@@ -87,6 +92,14 @@ VINTED_CATEGORY_MAP = {
     "Activewear": "73",
     "Shoes": "16",
     "Bags": "19"
+}
+
+CATEGORY_HIERARCHY = {
+    "top, shirt, blouse": ["Tops & t-shirts", "Jumpers & sweaters", "Outerwear"],
+    "trousers, pants, jeans": ["Jeans", "Trousers & leggings", "Shorts & cropped trousers"],
+    "dress, skirt": ["Dresses", "Skirts", "Skorts", "Jumpsuits & playsuits"],
+    "shoes, boots, sandals": ["Shoes"],
+    "bag, purse, wallet": ["Bags"]
 }
 
 VINTED_WOMENS_SIZE_MAP = {

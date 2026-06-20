@@ -11,29 +11,13 @@ function PreferencesPanel({
   selectedCategory,
   setSelectedCategory,
   selectedColors,
-  setSelectedColors,
+  toggleColour,
   selectedConditions,
   toggleCondition,
   isOpen,
   toggleOpen,
   onScrape,
 }) {
-  const handleSizeToggle = (size) => {
-    if (selectedSizes.includes(size)) {
-      toggleSize(selectedSizes.filter(s => s !== size)); 
-    } else {
-      toggleSize([...selectedSizes, size]);
-    }
-  };
-
-  const handleColorToggle = (color) => {
-    if (selectedColors.includes(color)) {
-      setSelectedColors(selectedColors.filter(c => c !== color));
-    } else {
-      setSelectedColors([...selectedColors, color]);
-    }
-  };
-
   return (
     <div className="pref-container">
       <div
@@ -53,9 +37,9 @@ function PreferencesPanel({
             </select>
           </div>
 
-          <ColourPicker selectedColors={selectedColors} toggleColor={handleColorToggle} />
+          <ColourPicker selectedColors={selectedColors} toggleColour={toggleColour} />
 
-          <SizePicker selectedSizes={selectedSizes} toggleSize={handleSizeToggle} />
+          <SizePicker selectedSizes={selectedSizes} toggleSize={toggleSize} />
 
           <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
             <div style={{ flex: 1 }}>
@@ -65,6 +49,7 @@ function PreferencesPanel({
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
                 placeholder="No, see all"
+                className='inline'
               />
             </div>
           </div>

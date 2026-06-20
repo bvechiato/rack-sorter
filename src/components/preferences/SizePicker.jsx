@@ -14,8 +14,8 @@ function SizePicker({ selectedSizes, toggleSize }) {
         className="size-dropdown"
         onChange={(e) => {
             if (e.target.value) {
-            toggleSize(e.target.value); // Pass the value, not the event
-            e.target.value = ""; 
+                toggleSize(e.target.value);
+                e.target.value = ""; 
             }
         }}
       >
@@ -25,6 +25,9 @@ function SizePicker({ selectedSizes, toggleSize }) {
             {s.label}
           </option>
         ))}
+        { selectedSizes.length > 0 && (
+          <option key="see-all" value="See all">See all</option>
+        )}
       </select>
 
       {/* Active Tags */}

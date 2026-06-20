@@ -2,7 +2,6 @@ import re
 from bs4 import BeautifulSoup
 from fastapi import HTTPException
 from curl_cffi import requests
-from typing import List, Optional
 
 def scrape_vinted_pool(keyword: str, query_params: str) -> list:
     """Hits the public Vinted catalog endpoint with exact profile constraints."""

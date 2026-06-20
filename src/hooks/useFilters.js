@@ -34,15 +34,42 @@ export function useFilters() {
   }, [selectedConditions]);
 
   const toggleSize = (size) => {
-    setSelectedSizes(prev =>
-      prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
-    );
+    if (size === "See all") {
+      setSelectedSizes([]);
+      return;
+    } 
+    if (selectedSizes.includes(size)) {
+      setSelectedSizes(prev => prev.filter(s => s !== size));
+      console.log(`[INFO] Removed size: ${size}`);
+    } else {
+      setSelectedSizes(prev => [...prev, size]);
+      console.log(`[INFO] Added size: ${size}`);
+    }
   };
 
   const toggleCondition = (condition) => {
-    setSelectedConditions(prev =>
-      prev.includes(condition) ? prev.filter(c => c !== condition) : [...prev, condition]
-    );
+    if (selectedConditions.includes(condition)) {
+      setSelectedConditions(prev => prev.filter(c => c !== condition));
+      console.log(`[INFO] Removed condition: ${condition}`);
+    } else {
+      setSelectedConditions(prev => [...prev, condition]);
+      console.log(`[INFO] Added condition: ${condition}`);
+    }
+  };
+
+  const toggleColour = (colour) => {
+    if (colour === "None") {
+      setSelectedColors([]);
+      return;
+    }
+
+    if (selectedColors.includes(colour)) {
+      setSelectedColors(prev => prev.filter(c => c !== colour));
+      console.log(`[INFO] Removed colour: ${colour}`);
+    } else {
+      setSelectedColors(prev => [...prev, colour]);
+      console.log(`[INFO] Added colour: ${colour}`);
+    }
   };
 
   return {
@@ -59,6 +86,7 @@ export function useFilters() {
       setSelectedCategory,
       setSelectedColors,
       setSelectedConditions,
+      toggleColour,
       toggleSize,
       toggleCondition,
     },

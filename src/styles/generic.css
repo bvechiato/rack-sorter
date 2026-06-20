@@ -57,3 +57,8 @@ button {
     transition: opacity 0.1s;
 }
 button:active { opacity: 0.7; }
+
+input[type="number"].inline {
+    width: 30%;
+    display: inline;
+}

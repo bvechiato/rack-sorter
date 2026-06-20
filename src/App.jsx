@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Header from './components/Header';
 import SearchActionBar from './components/SearchActionBar';
 import KeywordSuggestions from './components/KeywordSuggestions';
@@ -50,6 +50,16 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    filterActions.setSelectedColors(imageState.suggestedColours);
+  }, [imageState.suggestedColours]);
+
+  useEffect(() => {
+    if (imageState.suggestedCategory) {
+      filterActions.setSelectedCategory(imageState.suggestedCategory);
+    }
+  }, [imageState.suggestedCategory]);
+
   return (
     <div>
       <Header />
@@ -75,7 +85,7 @@ function App() {
         selectedCategory={filters.selectedCategory}
         setSelectedCategory={filterActions.setSelectedCategory}
         selectedColors={filters.selectedColors}
-        setSelectedColors={filterActions.setSelectedColors}
+        toggleColour={filterActions.toggleColour}
         selectedConditions={filters.selectedConditions}
         toggleCondition={filterActions.toggleCondition}
         isOpen={uiState.preferencesOpen || imageState.showSuggestions}
