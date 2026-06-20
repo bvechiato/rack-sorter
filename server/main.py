@@ -6,11 +6,11 @@ from fastapi.staticfiles import StaticFiles
 import os
 from contextlib import asynccontextmanager
 
-from backend.api.models import *
-from backend.service.scraper import scrape_vinted_pool
-from backend.service.vector_engine import extract_tags_from_image, rank_pool_by_sliders
-from backend.service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
-from backend.service.eval_db import save_query_to_db, init, save_user_upload
+from api.models import *
+from service.scraper import scrape_vinted_pool
+from service.vector_engine import extract_tags_from_image, rank_pool_by_sliders
+from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
+from service.eval_db import save_query_to_db, init, save_user_upload
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
