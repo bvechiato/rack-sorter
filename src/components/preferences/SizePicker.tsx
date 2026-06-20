@@ -1,6 +1,6 @@
 import React from 'react';
 import { SIZES } from '../../static/constants';
-import './style.css';
+import '../../styles/preferences.css';
 
 type Props = {
   selectedSizes: string[];

@@ -57,7 +57,8 @@ async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest)
     catalog_id = VINTED_CATEGORY_MAP.get(request.selectedCategory, "")
     colour_ids = []
     for c_name in request.selectedColors.split(","):
-        colour_ids.extend(COLOUR_MAP.get(c_name))
+        if c_name in COLOUR_MAP.keys():
+            colour_ids.extend(COLOUR_MAP.get(c_name))
 
     query_params = f"search_text={keyword}"
     if catalog_id:

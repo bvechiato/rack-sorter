@@ -1,13 +1,9 @@
 import React from 'react';
+import { components } from '../types/api'; 
 
-type Product = {
-  url?: string;
-  image_url?: string;
-  title?: string;
-  score?: number;
-};
+type ItemResponse = components['schemas']['ItemResponse'];
 
-const ProductGrid: React.FC<{ products: Product[] }> = ({ products }) => {
+const ProductGrid: React.FC<{ products: ItemResponse[] }> = ({ products }) => {
   if (!products || products.length === 0) {
     return (
       <div className="results-grid">
@@ -36,9 +32,6 @@ const ProductGrid: React.FC<{ products: Product[] }> = ({ products }) => {
           <img src={item.image_url} alt="Listing" loading="lazy" />
           <div className="product-info">
             <div className="product-title">{item.title}</div>
-            {item.score && (
-              <div className="product-score">Match: {Math.round(item.score * 100)}%</div>
-            )}
           </div>
         </a>
       ))}
