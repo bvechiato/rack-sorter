@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from fastapi import HTTPException
 from curl_cffi import requests
 
-def scrape_vinted_pool(keyword: str, query_params: str) -> list:
+def scrape_vinted_pool(query_params: str) -> list:
     """Hits the public Vinted catalog endpoint with exact profile constraints."""
     url = f"https://www.vinted.co.uk/catalog?&{query_params}&order=newest_first"
 

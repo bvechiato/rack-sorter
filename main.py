@@ -3,10 +3,10 @@ from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from typing import Optional
 import os
 from contextlib import asynccontextmanager
 
+from backend.api.models import *
 from backend.service.scraper import scrape_vinted_pool
 from backend.service.vector_engine import extract_tags_from_image, rank_pool_by_sliders
 from backend.service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
@@ -37,52 +37,48 @@ async def serve_frontend():
 async def serve_manifest():
     return FileResponse("manifest.json")
 
-@app.post("/analyze")
-async def analyze_anchor_image(bg_tasks: BackgroundTasks, file: UploadFile = File(...)):
+@app.post("/analyze", response_model=AnalyseAnchorImageResponse)
+async def analyze_anchor_image(file: UploadFile = File(...)):
     try:
         contents = await file.read()
         analysis_payload = extract_tags_from_image(contents)
         upload_id = save_user_upload(contents, analysis_payload)
-        return {"upload_id": upload_id, "analysis": analysis_payload}
+        
+        return AnalyseAnchorImageResponse(
+            upload_id=upload_id, 
+            analysis=AnalyseResponse(**analysis_payload)
+        )
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": f"Analysis crashed: {str(e)}"})
-
+        return JSONResponse(status_code=500, content={"message": str(e)})
+   
 @app.post("/fetch_initial")
-async def fetch_initial(
-    bg_tasks: BackgroundTasks,
-    uploadId: Optional[int] = Form(None),
-    keyword: str = Form(...),
-    selectedSizes: Optional[str] = Form(""),
-    selectedCategory: str = Form("All clothes"),
-    selectedColors: Optional[str] = Form(""),
-    maxPrice: Optional[str] = Form(None),
-    selectedConditions: Optional[str] = Form("")
-):
-    catalog_id = VINTED_CATEGORY_MAP.get(selectedCategory, "")
+async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest) -> FetchInitialResponse:
+    keyword = request.keyword.replace(' ', '+')
+    catalog_id = VINTED_CATEGORY_MAP.get(request.selectedCategory, "")
     colour_ids = []
-    for c_name in selectedColors.split(","):
+    for c_name in request.selectedColors.split(","):
         colour_ids.extend(COLOUR_MAP.get(c_name))
 
-    query_params = f"search_text={keyword.replace(' ', '+')}"
+    query_params = f"search_text={keyword}"
     if catalog_id:
         query_params += f"&catalog[]={catalog_id}"
     if colour_ids:
         for c_id in colour_ids:
             query_params += f"&color_ids[]={c_id}"
-    if selectedSizes:
-        for size_id in selectedSizes.split(","):
+    if request.selectedSizes:
+        for size_id in request.selectedSizes.split(","):
             query_params += f"&size_ids[]={size_id}"
-    if maxPrice:
-        query_params += f"&price_to={maxPrice}&currency=GBP"
-    if selectedConditions:
-        for cid in selectedConditions.split(","):
+    if request.maxPrice:
+        query_params += f"&price_to={request.maxPrice}&currency=GBP"
+    if request.selectedConditions:
+        for cid in request.selectedConditions.split(","):
             if cid:
                 query_params += f"&status_ids[]={cid}"
 
     print(f"\n[INFO] Constructed Query Parameters: {query_params}\n")
-    items = scrape_vinted_pool(keyword, query_params)
-    bg_tasks.add_task(save_query_to_db, uploadId, keyword, query_params, items)
-    return {"pool": items}
+    items = scrape_vinted_pool(query_params)
+    bg_tasks.add_task(save_query_to_db, request.uploadId, keyword, query_params, items)
+    return FetchInitialResponse(pool=items)
 
 @app.post("/rerank")
 async def rerank_pool(pool_data: list, weights: str = Form(...)):

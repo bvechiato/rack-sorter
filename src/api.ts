@@ -1,43 +1,35 @@
+import { components } from './types/api'; 
+
+type AnalyseAnchorImageResponse = components['schemas']['AnalyseAnchorImageResponse'];
+type FetchInitialRequest = components['schemas']['FetchInitialRequest'];
+type FetchInitialResponse = components['schemas']['FetchInitialResponse'];
+
 const API_HOST = window.location.origin;
 
-async function handleResponse(res: Response): Promise<any> {
+async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    if (res.status === 0 || res.statusText === 'Unknown Error') {
-      throw new Error('Backend server not running. Start it with: python -m uvicorn main:app --host 0.0.0.0 --port 8000');
+    if (res.status === 0) {
+      throw new Error('Backend server not running.');
     }
     const error = await res.json().catch(() => ({}));
     throw new Error(error.message || `API error: ${res.status}`);
   }
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
-export async function analyzeFile(file: File): Promise<any> {
+export async function analyzeFile(file: File): Promise<AnalyseAnchorImageResponse> {
   const formData = new FormData();
-  formData.append('file', file as Blob);
-  try {
-    const res = await fetch(`${API_HOST}/analyze`, { method: 'POST', body: formData });
-    return await handleResponse(res);
-  } catch (err: any) {
-    throw new Error(err?.message || 'Failed to analyze image');
-  }
+  formData.append('file', file);
+  
+  const res = await fetch(`${API_HOST}/analyze`, { method: 'POST', body: formData });
+  return await handleResponse<AnalyseAnchorImageResponse>(res);
 }
 
-export async function fetchInitial(formData: FormData): Promise<any> {
-  try {
-    const res = await fetch(`${API_HOST}/fetch_initial`, { method: 'POST', body: formData });
-    return await handleResponse(res);
-  } catch (err: any) {
-    throw new Error(err?.message || 'Failed to fetch items');
-  }
+export async function fetchInitial(data: FetchInitialRequest): Promise<FetchInitialResponse> {
+  const res = await fetch(`${API_HOST}/fetch_initial`, { 
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json' }, 
+    body: JSON.stringify(data)
+  });
+  return await handleResponse<FetchInitialResponse>(res);
 }
-
-export async function rerank(formData: FormData): Promise<any> {
-  try {
-    const res = await fetch(`${API_HOST}/rerank`, { method: 'POST', body: formData });
-    return await handleResponse(res);
-  } catch (err: any) {
-    throw new Error(err?.message || 'Failed to rerank items');
-  }
-}
-
-export default { analyzeFile, fetchInitial, rerank };

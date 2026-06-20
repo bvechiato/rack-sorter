@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fetchInitial, rerank } from '../api';
+import { fetchInitial } from '../api';
 
 export function useProductSearch() {
   const [currentPool, setCurrentPool] = useState<any[]>([]);
@@ -13,18 +13,20 @@ export function useProductSearch() {
 
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('keyword', keyword);
-      formData.append('selectedSizes', filters.selectedSizes.join(','));
-      formData.append('maxPrice', filters.maxPrice);
-      formData.append('selectedCategory', filters.selectedCategory);
-      formData.append('selectedColors', filters.selectedColors.join(','));
-      formData.append('selectedConditions', filters.selectedConditions.join(','));
-      formData.append('uploadId', uploadId);
+      const requestData = {
+        uploadId: Number(uploadId),
+        keyword: keyword,
+        selectedSizes: filters.selectedSizes.join(','),
+        selectedCategory: filters.selectedCategory,
+        selectedColors: filters.selectedColors.join(','),
+        maxPrice: String(filters.maxPrice),
+        selectedConditions: filters.selectedConditions.join(',')
+      };
 
-      console.log(`[INFO] Sending scrape request with filters: ${JSON.stringify(formData)}`);
+      // Now this passes type checking!
+      const poolData = await fetchInitial(requestData);
+      console.log(`[INFO] Sending scrape request with filters: ${JSON.stringify(requestData)}`);
 
-      const poolData = await fetchInitial(formData);
       setCurrentPool(poolData.pool || []);
       setProducts(poolData.pool || []);
     } catch (err) {
@@ -45,8 +47,8 @@ export function useProductSearch() {
       formData.append('pool_data', JSON.stringify(currentPool));
       formData.append('weights', JSON.stringify(weights));
 
-      const rankedData = await rerank(formData);
-      setProducts(rankedData);
+    //   const rankedData = await rerank(formData);
+    //   setProducts(rankedData);
     } catch (err) {
       throw new Error('Vector calculation error');
     } finally {
