@@ -1,18 +1,24 @@
 import json
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from typing import List, Optional
+from typing import Optional
 import os
+from contextlib import asynccontextmanager
 
 from backend.service.scraper import scrape_vinted_pool
 from backend.service.vector_engine import extract_tags_from_image, rank_pool_by_sliders
 from backend.service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
+from backend.service.eval_db import save_query_to_db, init
 
-app = FastAPI(title="RackSorter Unified Engine")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    conn = init()
+    conn.close()
+    yield
 
-# Permit local area connections across your network
+app = FastAPI(title="RackSorter Unified Engine", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,8 +26,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Mount the React build output directory
 if os.path.exists("dist"):
     app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
 
@@ -44,6 +48,7 @@ async def analyze_anchor_image(file: UploadFile = File(...)):
 
 @app.post("/fetch_initial")
 async def fetch_initial(
+    bg_tasks: BackgroundTasks,
     keyword: str = Form(...),
     selectedSizes: Optional[str] = Form(""),
     selectedCategory: str = Form("All clothes"),
@@ -74,6 +79,7 @@ async def fetch_initial(
 
     print(f"\n[INFO] Constructed Query Parameters: {query_params}\n")
     items = scrape_vinted_pool(keyword, query_params)
+    bg_tasks.add_task(save_query_to_db, keyword, query_params, items)
     return {"pool": items}
 
 @app.post("/rerank")
