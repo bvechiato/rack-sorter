@@ -1,10 +1,9 @@
 import io
-import os
 import torch
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
 from curl_cffi import requests
-from backend.service.static.CONSTANTS import CANDIDATE_TAGS, COLOUR_MAP, CATEGORY_HIERARCHY
+from service.static.CONSTANTS import CANDIDATE_TAGS, COLOUR_MAP, CATEGORY_HIERARCHY
 
 print("Initializing local CLIP visual model architecture...")
 MODEL_ID = "openai/clip-vit-base-patch32"
