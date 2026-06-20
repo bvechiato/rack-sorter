@@ -34,7 +34,7 @@ function App() {
 
   const handleScrape = async () => {
     try {
-      await searchActions.scrapeProducts(imageState.confirmedKeyword, filters);
+      await searchActions.scrapeProducts(imageState.uploadId, imageState.confirmedKeyword, filters);
       uiActions.setPanelOpen(false);
     } catch (err) {
       alert(err.message);

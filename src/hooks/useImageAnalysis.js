@@ -9,6 +9,7 @@ export function useImageAnalysis() {
   const [loading, setLoading] = useState(false);
   const [suggestedColours, setSuggestedColours] = useState([]);
   const [suggestedCategory, setSuggestedCategory] = useState(null);
+  const [uploadId, setUploadId] = useState(null);
 
   const handleImageUpload = async (file) => {
     if (!file) return;
@@ -16,17 +17,19 @@ export function useImageAnalysis() {
     setLoading(true);
     try {
       const data = await analyzeFile(file);
-      setConfirmedKeyword(data.archetype);
+      const analysis = data.analysis;
+      setUploadId(data.upload_id);
+      setConfirmedKeyword(analysis.archetype);
 
       // Build unique keywords (filter out color-related ones)
-      const rawKeywords = [...(data.classified_tags || [])];
+      const rawKeywords = [...(analysis.classified_tags || [])];
       setSuggestedKeywords(rawKeywords);
       setShowSuggestions(true);
-      setSuggestedColours([data.colour_archetype, ...(data.colour_classified_tags || [])]);
-      setSuggestedCategory(data.category_archetype);
+      setSuggestedColours([analysis.colour_archetype, ...(analysis.colour_classified_tags || [])]);
+      setSuggestedCategory(analysis.category_archetype);
 
       // Store tags for weight sliders
-      setSuggestedTags(data.classified_tags || []);
+      setSuggestedTags(analysis.classified_tags || []);
     } catch (err) {
       throw new Error('Connection failure to local Python host engine');
     } finally {
@@ -47,6 +50,7 @@ export function useImageAnalysis() {
       suggestedColours,
       suggestedCategory,
       loading,
+      uploadId,
     },
     actions: {
       setConfirmedKeyword,

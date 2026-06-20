@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from backend.service.scraper import scrape_vinted_pool
 from backend.service.vector_engine import extract_tags_from_image, rank_pool_by_sliders
 from backend.service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
-from backend.service.eval_db import save_query_to_db, init
+from backend.service.eval_db import save_query_to_db, init, save_user_upload
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,17 +38,19 @@ async def serve_manifest():
     return FileResponse("manifest.json")
 
 @app.post("/analyze")
-async def analyze_anchor_image(file: UploadFile = File(...)):
+async def analyze_anchor_image(bg_tasks: BackgroundTasks, file: UploadFile = File(...)):
     try:
         contents = await file.read()
         analysis_payload = extract_tags_from_image(contents)
-        return analysis_payload
+        upload_id = save_user_upload(contents, analysis_payload)
+        return {"upload_id": upload_id, "analysis": analysis_payload}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Analysis crashed: {str(e)}"})
 
 @app.post("/fetch_initial")
 async def fetch_initial(
     bg_tasks: BackgroundTasks,
+    uploadId: Optional[int] = Form(None),
     keyword: str = Form(...),
     selectedSizes: Optional[str] = Form(""),
     selectedCategory: str = Form("All clothes"),
@@ -79,7 +81,7 @@ async def fetch_initial(
 
     print(f"\n[INFO] Constructed Query Parameters: {query_params}\n")
     items = scrape_vinted_pool(keyword, query_params)
-    bg_tasks.add_task(save_query_to_db, keyword, query_params, items)
+    bg_tasks.add_task(save_query_to_db, uploadId, keyword, query_params, items)
     return {"pool": items}
 
 @app.post("/rerank")

@@ -6,7 +6,7 @@ export function useProductSearch() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const scrapeProducts = async (keyword, filters) => {
+  const scrapeProducts = async (uploadId, keyword, filters) => {
     if (!keyword.trim()) {
       throw new Error('Please provide or parse a lookup keyword first.');
     }
@@ -20,6 +20,7 @@ export function useProductSearch() {
       formData.append('selectedCategory', filters.selectedCategory);
       formData.append('selectedColors', filters.selectedColors.join(','));
       formData.append('selectedConditions', filters.selectedConditions.join(','));
+      formData.append('uploadId', uploadId);
 
       console.log(`[INFO] Sending scrape request with filters: ${JSON.stringify(formData)}`);
 
