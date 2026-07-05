@@ -162,6 +162,8 @@ export interface components {
             url: string;
             /** Image Url */
             image_url: string;
+            /** Similarity Score */
+            similarity_score: number;
         };
         /** ValidationError */
         ValidationError: {

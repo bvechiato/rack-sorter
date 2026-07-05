@@ -8,9 +8,9 @@ from contextlib import asynccontextmanager
 
 from api.models import *
 from service.scraper import scrape_vinted_pool
-from service.vector_engine import extract_tags_from_image, rank_pool_by_sliders
+from service.vector_engine import extract_tags_from_image, process_and_rank_pool
 from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
-from service.eval_db import save_query_to_db, init, save_user_upload
+from service.eval_db import save_query_to_db, init, save_user_upload, get_upload_bytes_by_id
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -78,14 +78,18 @@ async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest)
 
     print(f"\n[INFO] Constructed Query Parameters: {query_params}\n")
     items = scrape_vinted_pool(query_params)
-    bg_tasks.add_task(save_query_to_db, request.uploadId, keyword, query_params, items)
-    return FetchInitialResponse(pool=items)
+
+    anchor_bytes = get_upload_bytes_by_id(request.uploadId) 
+    processed_items = process_and_rank_pool(items, anchor_bytes)
+
+    bg_tasks.add_task(save_query_to_db, request.uploadId, keyword, query_params, processed_items)
+    return FetchInitialResponse(pool=processed_items)
 
 @app.post("/rerank")
 async def rerank_pool(pool_data: list, weights: str = Form(...)):
     try:
         parsed_weights = json.loads(weights)
-        ranked_feed = rank_pool_by_sliders(pool_data, parsed_weights)
-        return ranked_feed
+        # ranked_feed = rank_pool_by_sliders(pool_data, parsed_weights)
+        return parsed_weights
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Reranking crashed: {str(e)}"})

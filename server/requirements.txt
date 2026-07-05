@@ -7,3 +7,4 @@ transformers==4.41.2
 torch==2.3.1
 pillow==10.3.0
 curl_cffi
+scikit-learn

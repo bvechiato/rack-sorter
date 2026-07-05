@@ -4,6 +4,7 @@ import uuid
 import os
 
 DB = "search_eval.db"
+UPLOADS_PATH = "server/service/static/uploads"
 
 def save_query_to_db(upload_id, keyword, query_params, items):
     conn = sqlite3.connect(DB)
@@ -56,20 +57,42 @@ def save_user_upload(file_contents: bytes, tags_dict: dict):
     conn.close()
     return upload_id
 
-def save_image(file_contents):
-    upload_dir = "backend/service/static/uploads"
-    
-    if not os.path.exists(upload_dir):
-        os.makedirs(upload_dir)
+def save_image(file_contents):    
+    if not os.path.exists(UPLOADS_PATH):
+        os.makedirs(UPLOADS_PATH)
         
     filename = f"{uuid.uuid4()}.jpg"
-    file_path = os.path.join(upload_dir, filename)
+    file_path = os.path.join(UPLOADS_PATH, filename)
     
     with open(file_path, 'wb') as out_file:
         out_file.write(file_contents)
         
     return filename
     
+# --- GET
+def get_upload_bytes_by_id(upload_id: int) -> bytes:
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT image_path FROM user_uploads WHERE id = ?", (upload_id,))
+    result = cursor.fetchone()    
+    conn.close()
+    
+    if not result:
+        raise FileNotFoundError(f"No database entry found for upload ID: {upload_id}")
+        
+    filename = result[0]
+    
+    full_path = os.path.join(UPLOADS_PATH, filename)
+    
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f"Image file missing from disk: {full_path}")
+        
+    # Read the file directly into raw memory bytes
+    with open(full_path, 'rb') as file:
+        return file.read()
+
+
 def init():
     connection = sqlite3.connect(DB)
     cursor = connection.cursor()
