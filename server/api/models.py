@@ -13,6 +13,7 @@ class ItemResponse(BaseModel):
     title: str
     url: str
     image_url: str
+    similarity_score: float
 
 class FetchInitialResponse(BaseModel):
     pool: list[ItemResponse]

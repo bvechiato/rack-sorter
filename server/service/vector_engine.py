@@ -1,14 +1,20 @@
 import io
 import torch
 from PIL import Image
+import cloudscraper
+from sklearn.metrics.pairwise import cosine_similarity
 from transformers import CLIPProcessor, CLIPModel
-from curl_cffi import requests
+from transformers import AutoImageProcessor, AutoModel
 from service.static.CONSTANTS import CANDIDATE_TAGS, COLOUR_MAP, CATEGORY_HIERARCHY
 
 print("Initializing local CLIP visual model architecture...")
-MODEL_ID = "openai/clip-vit-base-patch32"
-model = CLIPModel.from_pretrained(MODEL_ID)
-processor = CLIPProcessor.from_pretrained(MODEL_ID)
+MODEL_ID = "facebook/dinov2-base"
+processor = AutoImageProcessor.from_pretrained(MODEL_ID)
+model = AutoModel.from_pretrained(MODEL_ID)
+
+clip_model_id = "patrickjohncyh/fashion-clip"
+clip_model = CLIPModel.from_pretrained(clip_model_id)
+clip_processor = CLIPProcessor.from_pretrained(clip_model_id)
 print("Model vectors staged in RAM successfully.")
 
 def extract_tags_from_image(image_bytes: bytes) -> dict:
@@ -31,9 +37,9 @@ def extract_tags_from_image(image_bytes: bytes) -> dict:
     }
 
 def zero_shot_classification(image: Image, candidate_tags: list[str], limit: int = 5) -> dict:
-    inputs = processor(text=candidate_tags, images=image, return_tensors="pt", padding=True)
+    inputs = clip_processor(text=candidate_tags, images=image, return_tensors="pt", padding=True)
     with torch.no_grad():
-        outputs = model(**inputs)
+        outputs = clip_model(**inputs)
         logits_per_image = outputs.logits_per_image
         probs = logits_per_image.softmax(dim=-1).numpy()[0]
         
@@ -50,54 +56,60 @@ def zero_shot_classification(image: Image, candidate_tags: list[str], limit: int
         "classified_tags": [pair[0] for pair in final_tags]
     }
 
-def rank_pool_by_sliders(pool_data: list, parsed_weights: dict) -> list:
-    """Applies multi-vector weighting profiles to re-order scraped listings."""
-    if not pool_data:
-        return []
-        
-    words = list(parsed_weights.keys())
-    scalar_values = list(parsed_weights.values())
+def process_and_rank_pool(scraped_items: list, anchor_image_bytes: bytes) -> list:
+    scraper = cloudscraper.create_scraper()
     
-    # 1. Compute unified multi-modal query target vector
-    text_inputs = processor(text=words, return_tensors="pt", padding=True)
+    # 1. Process Anchor Image: Convert to Grayscale to neutralize color
+    anchor_image = Image.open(io.BytesIO(anchor_image_bytes)).convert("L").convert("RGB")
+    
+    # 2. Extract DINOv2 Visual Features for the Anchor
+    anchor_inputs = processor(images=anchor_image, return_tensors="pt")
     with torch.no_grad():
-        text_features = model.get_text_features(**text_inputs)
-        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        outputs = model(**anchor_inputs)
+        # DINOv2 pooler_output gives a unified 768-dimensional visual feature vector
+        anchor_features = outputs.pooler_output
         
-    weight_tensor = torch.tensor(scalar_values, dtype=torch.float32).unsqueeze(1)
-    weighted_query_vector = (text_features * weight_tensor).sum(dim=0, keepdim=True)
-    weighted_query_vector = weighted_query_vector / weighted_query_vector.norm(dim=-1, keepdim=True)
-
-    # 2. Iterate and image-embed the active sandbox pool items
-    valid_items = []
-    image_tensors = []
+    # Normalize the anchor vector
+    anchor_features /= anchor_features.norm(dim=-1, keepdim=True)
     
-    for item in pool_data:
+    ranked_pool = []
+    
+    # 3. Process the Scraped Pool
+    for item in scraped_items:
         try:
-            img_res = requests.get(item["image_url"], timeout=3, impersonate="chrome124")
-            if img_res.status_code == 200:
-                img_obj = Image.open(io.BytesIO(img_res.content)).convert("RGB")
-                valid_items.append(item)
+            image_url = item.get("image_url")
+            if not image_url:
+                continue
                 
-                img_input = processor(images=img_obj, return_tensors="pt")
-                with torch.no_grad():
-                    img_feat = model.get_image_features(**img_input)
-                    img_feat = img_feat / img_feat.norm(dim=-1, keepdim=True)
-                    image_tensors.append(img_feat)
-        except:
-            continue # Pass over corrupted image paths dynamically
+            response = scraper.get(image_url, timeout=3)
+            if response.status_code != 200:
+                continue
+                
+            # Process Vinted listing: Force Grayscale to match anchor context
+            item_image = Image.open(io.BytesIO(response.content)).convert("L").convert("RGB")
+            
+            # Extract DINOv2 features for the Vinted listing
+            item_inputs = processor(images=item_image, return_tensors="pt")
+            with torch.no_grad():
+                item_outputs = model(**item_inputs)
+                item_features = item_outputs.pooler_output
+                
+            # Normalize item vector
+            item_features /= item_features.norm(dim=-1, keepdim=True)
+                
+            # Compute pure spatial similarity matrix
+            similarity = cosine_similarity(
+                anchor_features.numpy(), 
+                item_features.numpy()
+            )[0][0]
+            
+            item["similarity_score"] = float(similarity)
+            ranked_pool.append(item)
+            
+        except Exception as e:
+            print(f"[WARN] Skipping item due to error: {e}")
+            continue
 
-    if not image_tensors:
-        return pool_data
-
-    # 3. Complete scoring using dot-product matrix operations
-    stacked_images = torch.cat(image_tensors, dim=0)
-    similarity_scores = torch.matmul(weighted_query_vector, stacked_images.T).squeeze(0).numpy()
-    
-    ranked_records = []
-    for idx, score in enumerate(similarity_scores):
-        item = valid_items[idx]
-        item["score"] = float(score)
-        ranked_records.append(item)
-        
-    return sorted(ranked_records, key=lambda x: x["score"], reverse=True)
+    # Sort best geometric matches to the top
+    ranked_pool.sort(key=lambda x: x["similarity_score"], reverse=True)
+    return ranked_pool
