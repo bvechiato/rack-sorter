@@ -1,34 +1,13 @@
 import sqlite3
-import json
 import uuid
 import os
-from . import repository
-
-DB = "search_eval.db"
-UPLOADS_PATH = "server/service/static/uploads"
+from repository.constants import UPLOADS_PATH, DB, CREATE_TABLES_QUERY
+from repository.query import insert_query
+from repository.search_items import insert_search_items
 
 def save_query_to_db(upload_id, keyword, query_params, items):
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    
-    # 1. Save the main query
-    cursor.execute("INSERT INTO queries (upload_id, search_keyword, query_params) VALUES (?, ?, ?)", 
-                   (upload_id, keyword, query_params))
-    query_id = cursor.lastrowid
-    
-    # 2. Save each item + full JSON blob
-    item_data = []
-    for i in items:
-        blob = json.dumps(i)
-        item_data.append((query_id, i.get('title'), i.get('url'), i.get('image_url'), blob))
-        
-    cursor.executemany("""
-        INSERT INTO search_items (query_id, title, url, image_url, blob_data) 
-        VALUES (?, ?, ?, ?, ?)
-    """, item_data)
-    
-    conn.commit()
-    conn.close()
+    query_id = insert_query(upload_id, keyword, query_params)
+    insert_search_items(query_id, items)    
 
 def save_clip_analysis(cursor, upload_id, tags_dict):
     INSERT_INTO_QUERY = """
@@ -73,7 +52,7 @@ def save_image(file_contents):
 def init():
     connection = sqlite3.connect(DB)
     cursor = connection.cursor()
-    cursor.executescript(repository.CREATE_TABLES_QUERY)
+    cursor.executescript(CREATE_TABLES_QUERY)
     connection.commit()
     print(f"[LOG] Db initialized and tables successfully.")
     return connection
