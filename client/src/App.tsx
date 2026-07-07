@@ -4,13 +4,11 @@ import SearchActionBar from './components/SearchActionBar';
 import KeywordSuggestions from './components/KeywordSuggestions';
 import PreferencesPanel from './components/preferences/PreferencesPanel';
 import ProductGrid from './components/ProductGrid';
-import VectorWeightPanel from './components/VectorWeightPanel';
 import LoadingIndicator from './components/LoadingIndicator';
 import {
   useFilters,
   useImageAnalysis,
   useProductSearch,
-  useVectorWeights,
   useUIState,
 } from './hooks';
 import './styles/index.css';
@@ -20,7 +18,6 @@ function App() {
   const { filters, actions: filterActions } = useFilters();
   const { state: imageState, actions: imageActions } = useImageAnalysis();
   const { state: searchState, actions: searchActions } = useProductSearch();
-  const { weights, updateWeight } = useVectorWeights(imageState.suggestedTags);
   const { state: uiState, actions: uiActions } = useUIState();
 
   const handleImageUpload = async (file: File | null) => {
@@ -35,15 +32,6 @@ function App() {
   const handleScrape = async () => {
     try {
       await searchActions.scrapeProducts(imageState.uploadId, imageState.confirmedKeyword, filters);
-      uiActions.setPanelOpen(false);
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
-  const handleRerank = async () => {
-    try {
-      await searchActions.rerankProducts(weights);
       uiActions.setPanelOpen(false);
     } catch (err: any) {
       alert(err.message);
@@ -95,7 +83,10 @@ function App() {
 
       {searchState.loading && <LoadingIndicator />}
 
-      <ProductGrid products={searchState.products} />
+      <ProductGrid 
+        products={searchState.products} 
+        onFeedback={(imageUrl: string, feedbackType: "MORE" | "LESS") => searchActions.rerankProducts(imageState.uploadId, imageUrl, feedbackType)}
+      />
 
       <div
         className={`panel-overlay ${uiState.panelOpen ? 'show' : ''}`}
@@ -109,15 +100,6 @@ function App() {
       >
         ☰
       </button>
-
-      <VectorWeightPanel
-        isOpen={uiState.panelOpen}
-        suggestedTags={imageState.suggestedTags}
-        weights={weights}
-        updateWeight={updateWeight}
-        onRerank={handleRerank}
-        onClose={uiActions.closePanel}
-      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import sqlite3
 import json
 import uuid
 import os
+from . import repository
 
 DB = "search_eval.db"
 UPLOADS_PATH = "server/service/static/uploads"
@@ -68,75 +69,11 @@ def save_image(file_contents):
         out_file.write(file_contents)
         
     return filename
-    
-# --- GET
-def get_upload_bytes_by_id(upload_id: int) -> bytes:
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT image_path FROM user_uploads WHERE id = ?", (upload_id,))
-    result = cursor.fetchone()    
-    conn.close()
-    
-    if not result:
-        raise FileNotFoundError(f"No database entry found for upload ID: {upload_id}")
-        
-    filename = result[0]
-    
-    full_path = os.path.join(UPLOADS_PATH, filename)
-    
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"Image file missing from disk: {full_path}")
-        
-    # Read the file directly into raw memory bytes
-    with open(full_path, 'rb') as file:
-        return file.read()
-
 
 def init():
     connection = sqlite3.connect(DB)
     cursor = connection.cursor()
-    cursor.executescript(CREATE_TABLE_QUERY)
+    cursor.executescript(repository.CREATE_TABLES_QUERY)
     connection.commit()
     print(f"[LOG] Db initialized and tables successfully.")
     return connection
-
-CREATE_TABLE_QUERY = """
-CREATE TABLE IF NOT EXISTS user_uploads (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    image_path TEXT,
-    model_version TEXT DEFAULT 'v1.0'
-);
-
-CREATE TABLE IF NOT EXISTS queries (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    upload_id INTEGER,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    search_keyword TEXT,
-    query_params TEXT,
-    FOREIGN KEY (upload_id) REFERENCES user_uploads(id)
-);
-
-CREATE TABLE IF NOT EXISTS search_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    query_id INTEGER,
-    title TEXT,
-    url TEXT,
-    image_url TEXT,
-    blob_data TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    model_version TEXT DEFAULT 'v1.0',
-    FOREIGN KEY (query_id) REFERENCES queries(id)
-);
-
-CREATE TABLE IF NOT EXISTS clip_tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    upload_id INTEGER,
-    tag_name TEXT,
-    score REAL,
-    category_type TEXT,
-    model_version TEXT DEFAULT 'v1.0',
-    FOREIGN KEY (upload_id) REFERENCES user_uploads(id)
-);
-"""

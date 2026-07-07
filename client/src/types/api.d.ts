@@ -120,13 +120,6 @@ export interface components {
              */
             file: string;
         };
-        /** Body_rerank_pool_rerank_post */
-        Body_rerank_pool_rerank_post: {
-            /** Pool Data */
-            pool_data: unknown[];
-            /** Weights */
-            weights: string;
-        };
         /** FetchInitialRequest */
         FetchInitialRequest: {
             /** Uploadid */
@@ -164,6 +157,15 @@ export interface components {
             image_url: string;
             /** Similarity Score */
             similarity_score: number;
+        };
+        /** RerankRequest */
+        RerankRequest: {
+            /** Upload Id */
+            upload_id: number;
+            /** Item Url */
+            item_url: string;
+            /** Feedback Type */
+            feedback_type: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -298,7 +300,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_rerank_pool_rerank_post"];
+                "application/json": components["schemas"]["RerankRequest"];
             };
         };
         responses: {

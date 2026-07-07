@@ -33,3 +33,23 @@ export async function fetchInitial(data: FetchInitialRequest): Promise<FetchInit
   });
   return await handleResponse<FetchInitialResponse>(res);
 }
+
+export async function rerank(data: {
+  upload_id: number;
+  item_url: string;
+  feedback_type: string;
+}) {
+  const response = await fetch('/rerank', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error('Rerank failed');
+  }
+
+  return response.json();
+}
