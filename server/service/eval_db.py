@@ -4,10 +4,47 @@ import os
 from repository.constants import UPLOADS_PATH, DB, CREATE_TABLES_QUERY
 from repository.query import insert_query
 from repository.search_items import insert_search_items
+import numpy as np
 
 def save_query_to_db(upload_id, keyword, query_params, items):
     query_id = insert_query(upload_id, keyword, query_params)
-    insert_search_items(query_id, items)    
+    # Ensure embeddings are plain Python lists of floats so the repository
+    # can store them as float32 BLOBs.
+    sanitized = []
+    for it in items:
+        if isinstance(it, dict):
+            itm = it.copy()
+        else:
+            try:
+                itm = it.to_dict()
+            except Exception:
+                itm = {}
+
+        emb = None
+        if isinstance(itm, dict):
+            emb = itm.get('embedding') or (itm.get('data') or {}).get('embedding')
+
+        if emb is not None:
+            try:
+                if hasattr(emb, 'tolist'):
+                    emb_list = emb.tolist()
+                else:
+                    emb_list = list(map(float, emb))
+            except Exception:
+                emb_list = None
+
+            if emb_list is not None:
+                try:
+                    emb_list = [float(x) for x in emb_list]
+                except Exception:
+                    emb_list = None
+
+            if emb_list is not None:
+                itm['embedding'] = emb_list
+
+        sanitized.append(itm)
+
+    insert_search_items(query_id, sanitized)
 
 def save_clip_analysis(cursor, upload_id, tags_dict):
     INSERT_INTO_QUERY = """

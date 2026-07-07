@@ -19,4 +19,16 @@ def get_results_by_upload_id(upload_id: int) -> list:
     query_dto = get_query_by_upload_id(upload_id)
 
     query_id = query_dto.id
-    return get_items_by_query_id(query_id)
+    items = get_items_by_query_id(query_id)
+    sanitized = []
+    for item in items:
+        if isinstance(item, dict):
+            sanitized.append(item)
+        elif hasattr(item, "to_dict"):
+            sanitized.append(item.to_dict())
+        else:
+            try:
+                sanitized.append(vars(item))
+            except TypeError:
+                sanitized.append(item)
+    return sanitized

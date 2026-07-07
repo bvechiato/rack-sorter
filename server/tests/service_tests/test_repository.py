@@ -1,8 +1,4 @@
-import os
 from types import SimpleNamespace
-
-import pytest
-
 import service.repository as svc
 
 
@@ -32,4 +28,4 @@ def test_get_results_by_upload_id_returns_items(monkeypatch):
     monkeypatch.setattr(svc, "get_items_by_query_id", lambda qid: items)
 
     res = svc.get_results_by_upload_id(7)
-    assert res is items
+    assert res == [vars(item) for item in items]
