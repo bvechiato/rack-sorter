@@ -10,7 +10,8 @@ from service.scraper import scrape_vinted_pool
 from service.vector_engine import extract_tags_from_image, process_and_rank_pool, rerank
 from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
 from service.eval_db import save_query_to_db, init, save_user_upload
-from service.repository import get_upload_bytes_by_id, get_feedback_for_upload, get_results_by_upload_id, insert_rerank_feedback
+from service.repository import get_upload_bytes_by_id, get_results_by_upload_id
+from repository.feedback import insert_rerank_feedback, get_feedback_for_upload
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
