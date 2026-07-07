@@ -122,15 +122,19 @@ def process_and_rank_pool(scraped_items: list, anchor_image_bytes: bytes) -> lis
     ranked_pool.sort(key=lambda x: x["similarity_score"], reverse=True)
     return ranked_pool
 
+def _get_item_embedding(item):
+    if isinstance(item, dict):
+        return item.get("embedding")
+    return getattr(item, "embedding", None)
+
+
 def rerank(previous_results, feedback_history):
     anchor_item = max(
         previous_results,
-        key=lambda x: x["similarity_score"]
+        key=lambda x: x["similarity_score"] if isinstance(x, dict) else x.similarity_score
     )
 
-    anchor_embedding = np.array(
-        anchor_item["embedding"]
-    )
+    anchor_embedding = np.array(_get_item_embedding(anchor_item))
 
     intent_vector = build_intent_vector(
         anchor_embedding,
@@ -141,7 +145,7 @@ def rerank(previous_results, feedback_history):
 
     for item in previous_results:
         candidate_embedding = np.array(
-            item["embedding"]
+            _get_item_embedding(item)
         ).reshape(1, -1)
 
         score = cosine_similarity(
@@ -149,12 +153,15 @@ def rerank(previous_results, feedback_history):
             candidate_embedding
         )[0][0]
 
-        item["rerank_score"] = float(score)
+        if isinstance(item, dict):
+            item["rerank_score"] = float(score)
+        else:
+            setattr(item, "rerank_score", float(score))
 
         reranked.append(item)
 
     reranked.sort(
-        key=lambda x: x["rerank_score"],
+        key=lambda x: x["rerank_score"] if isinstance(x, dict) else x.rerank_score,
         reverse=True
     )
 
@@ -186,42 +193,22 @@ def build_intent_vector(anchor_embedding, feedback_history):
     negative_embeddings = []
 
     for feedback in feedback_history:
-        item = repository.get_item_by_url(
-            feedback["item_url"]
-        )
+        item = repository.get_item_by_url(feedback["item_url"])
 
-        embedding = np.array(
-            item["embedding"]
-        )
+        embedding = np.array(item.embedding if hasattr(item, "embedding") else item["embedding"])
 
         if feedback["feedback_type"] == "MORE":
-            positive_embeddings.append(
-                embedding
-            )
+            positive_embeddings.append(embedding)
         else:
-            negative_embeddings.append(
-                embedding
-            )
+            negative_embeddings.append(embedding)
 
     intent = anchor_embedding.copy()
 
     if positive_embeddings:
-        intent += (
-            0.3 *
-            np.mean(
-                positive_embeddings,
-                axis=0
-            )
-        )
+        intent += (0.3 * np.mean(positive_embeddings, axis=0))
 
     if negative_embeddings:
-        intent -= (
-            0.2 *
-            np.mean(
-                negative_embeddings,
-                axis=0
-            )
-        )
+        intent -= (0.2 * np.mean(negative_embeddings, axis=0))
 
     intent = intent / np.linalg.norm(intent)
 
