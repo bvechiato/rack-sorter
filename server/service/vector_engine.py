@@ -5,7 +5,7 @@ import cloudscraper
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import CLIPProcessor, CLIPModel
 from transformers import AutoImageProcessor, AutoModel
-from . import repository
+from repository.search_items import get_item_by_url
 from service.static.CONSTANTS import CANDIDATE_TAGS, COLOUR_MAP, CATEGORY_HIERARCHY
 import numpy as np
 
@@ -129,6 +129,7 @@ def _get_item_embedding(item):
 
 
 def rerank(previous_results, feedback_history):
+    print(f"[INFO] Reranking {len(previous_results)} items based on {len(feedback_history)} feedback entries.")
     anchor_item = max(
         previous_results,
         key=lambda x: x["similarity_score"] if isinstance(x, dict) else x.similarity_score
@@ -193,11 +194,13 @@ def build_intent_vector(anchor_embedding, feedback_history):
     negative_embeddings = []
 
     for feedback in feedback_history:
-        item = repository.get_item_by_url(feedback["item_url"])
+        item_url = feedback.item_url if hasattr(feedback, "item_url") else feedback["item_url"]
+        item = get_item_by_url(item_url)
 
         embedding = np.array(item.embedding if hasattr(item, "embedding") else item["embedding"])
+        feedback_type = feedback.feedback_type if hasattr(feedback, "feedback_type") else feedback["feedback_type"]
 
-        if feedback["feedback_type"] == "MORE":
+        if feedback_type == "MORE":
             positive_embeddings.append(embedding)
         else:
             negative_embeddings.append(embedding)
