@@ -5,7 +5,9 @@ import cloudscraper
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import CLIPProcessor, CLIPModel
 from transformers import AutoImageProcessor, AutoModel
+from . import repository
 from service.static.CONSTANTS import CANDIDATE_TAGS, COLOUR_MAP, CATEGORY_HIERARCHY
+import numpy as np
 
 print("Initializing local CLIP visual model architecture...")
 MODEL_ID = "facebook/dinov2-base"
@@ -69,7 +71,7 @@ def process_and_rank_pool(scraped_items: list, anchor_image_bytes: bytes) -> lis
         # DINOv2 pooler_output gives a unified 768-dimensional visual feature vector
         anchor_features = outputs.pooler_output
         
-    # Normalize the anchor vector
+    # Normalise the anchor vector
     anchor_features /= anchor_features.norm(dim=-1, keepdim=True)
     
     ranked_pool = []
@@ -94,7 +96,7 @@ def process_and_rank_pool(scraped_items: list, anchor_image_bytes: bytes) -> lis
                 item_outputs = model(**item_inputs)
                 item_features = item_outputs.pooler_output
                 
-            # Normalize item vector
+            # Normalise item vector
             item_features /= item_features.norm(dim=-1, keepdim=True)
                 
             # Compute pure spatial similarity matrix
@@ -104,6 +106,12 @@ def process_and_rank_pool(scraped_items: list, anchor_image_bytes: bytes) -> lis
             )[0][0]
             
             item["similarity_score"] = float(similarity)
+            item["embedding"] = (
+                item_features
+                    .squeeze()
+                    .numpy()
+                    .tolist()
+            )
             ranked_pool.append(item)
             
         except Exception as e:
@@ -113,3 +121,108 @@ def process_and_rank_pool(scraped_items: list, anchor_image_bytes: bytes) -> lis
     # Sort best geometric matches to the top
     ranked_pool.sort(key=lambda x: x["similarity_score"], reverse=True)
     return ranked_pool
+
+def rerank(previous_results, feedback_history):
+    anchor_item = max(
+        previous_results,
+        key=lambda x: x["similarity_score"]
+    )
+
+    anchor_embedding = np.array(
+        anchor_item["embedding"]
+    )
+
+    intent_vector = build_intent_vector(
+        anchor_embedding,
+        feedback_history
+    )
+
+    reranked = []
+
+    for item in previous_results:
+        candidate_embedding = np.array(
+            item["embedding"]
+        ).reshape(1, -1)
+
+        score = cosine_similarity(
+            intent_vector,
+            candidate_embedding
+        )[0][0]
+
+        item["rerank_score"] = float(score)
+
+        reranked.append(item)
+
+    reranked.sort(
+        key=lambda x: x["rerank_score"],
+        reverse=True
+    )
+
+    return reranked
+
+def get_embedding(image_bytes: bytes):
+    image = Image.open(io.BytesIO(image_bytes)).convert("L").convert("RGB")
+
+    inputs = processor(images=image, return_tensors="pt")
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+        embedding = outputs.pooler_output
+
+    embedding /= embedding.norm(dim=-1, keepdim=True)
+
+    return embedding.numpy()
+
+def get_image_embedding_from_url(image_url: str):
+    scraper = cloudscraper.create_scraper()
+
+    response = scraper.get(image_url, timeout=3)
+    response.raise_for_status()
+
+    return get_embedding(response.content)
+
+def build_intent_vector(anchor_embedding, feedback_history):
+    positive_embeddings = []
+    negative_embeddings = []
+
+    for feedback in feedback_history:
+        item = repository.get_item_by_url(
+            feedback["item_url"]
+        )
+
+        embedding = np.array(
+            item["embedding"]
+        )
+
+        if feedback["feedback_type"] == "MORE":
+            positive_embeddings.append(
+                embedding
+            )
+        else:
+            negative_embeddings.append(
+                embedding
+            )
+
+    intent = anchor_embedding.copy()
+
+    if positive_embeddings:
+        intent += (
+            0.3 *
+            np.mean(
+                positive_embeddings,
+                axis=0
+            )
+        )
+
+    if negative_embeddings:
+        intent -= (
+            0.2 *
+            np.mean(
+                negative_embeddings,
+                axis=0
+            )
+        )
+
+    intent = intent / np.linalg.norm(intent)
+
+    return intent.reshape(1, -1)

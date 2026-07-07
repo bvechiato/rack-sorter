@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fetchInitial } from '../api';
+import { fetchInitial, rerank } from '../api';
 
 export function useProductSearch() {
   const [currentPool, setCurrentPool] = useState<any[]>([]);
@@ -36,19 +36,22 @@ export function useProductSearch() {
     }
   };
 
-  const rerankProducts = async (weights: any) => {
-    if (!currentPool.length) {
-      throw new Error('Run an initial scraping pass before sorting vectors.');
+  const rerankProducts = async (uploadId: any, itemUrl: string, feedbackType: 'MORE' | 'LESS') => {
+    if (!uploadId) {
+      throw new Error('Missing upload id');
     }
 
     setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('pool_data', JSON.stringify(currentPool));
-      formData.append('weights', JSON.stringify(weights));
 
-    //   const rankedData = await rerank(formData);
-    //   setProducts(rankedData);
+    try {
+      const rankedData = await rerank({
+        upload_id: uploadId,
+        item_url: itemUrl,
+        feedback_type: feedbackType,
+      });
+
+      setProducts(rankedData.pool || []);
+      setCurrentPool(rankedData.pool || []);
     } catch (err) {
       throw new Error('Vector calculation error');
     } finally {

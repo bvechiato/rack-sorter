@@ -28,3 +28,8 @@ class AnalyseResponse(BaseModel):
 class AnalyseAnchorImageResponse(BaseModel):
     upload_id: int
     analysis: AnalyseResponse
+
+class RerankRequest(BaseModel):
+    upload_id: int
+    item_url: str
+    feedback_type: str
