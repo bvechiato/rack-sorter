@@ -42,3 +42,24 @@ def test_scraper_handles_bad_status(monkeypatch):
         assert False, "should raise"
     except HTTPException:
         pass
+
+
+def test_scraper_deduplicates_and_filters_non_vinted_images(monkeypatch):
+    html = '''
+    <html><body>
+      <div class="feed-grid__item"><a href="/itm/1"><img src="https://images1.vinted.net/1.jpg" alt="A"/></a></div>
+      <div class="item-box"><a href="https://www.vinted.co.uk/itm/1"><img data-src="https://images1.vinted.net/1.jpg" alt="A"/></a></div>
+      <div class="item-box"><a href="/itm/2"><img src="https://example.com/2.jpg" alt="B"/></a></div>
+    </body></html>
+    '''
+
+    class FakeRequests:
+        def get(self, url, headers=None, impersonate=None, timeout=None):
+            return make_response(html, 200)
+
+    monkeypatch.setattr(scraper, 'requests', FakeRequests())
+    items = scraper.scrape_vinted_pool('q=1')
+
+    assert len(items) == 1
+    assert items[0]['url'] == 'https://www.vinted.co.uk/itm/1'
+    assert items[0]['title'] == 'A'
