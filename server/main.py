@@ -1,13 +1,16 @@
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import os
 from contextlib import asynccontextmanager
 
 from api.models import *
+from api.errors import ServerError
 from service.scraper import scrape_vinted_pool
-from service.vector_engine import extract_tags_from_image, process_and_rank_pool, rerank
+from service.rerank import rerank
+from service.rank import process_and_rank_pool
+from service.identifier import extract_tags_from_image
 from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
 from service.eval_db import save_query_to_db, init, save_user_upload
 from service.repository import get_upload_bytes_by_id, get_results_by_upload_id
@@ -50,8 +53,8 @@ async def analyze_anchor_image(file: UploadFile = File(...)):
             analysis=AnalyseResponse(**analysis_payload)
         )
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": str(e)})
-   
+        return ServerError(message=f"Analysis crashed: {str(e)}")
+
 @app.post("/fetch_initial")
 async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest) -> FetchInitialResponse:
     keyword = request.keyword.replace(' ', '+')
@@ -87,27 +90,14 @@ async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest)
     return FetchInitialResponse(pool=processed_items)
 
 @app.post("/rerank")
-async def rerank_pool(
-    bg_tasks: BackgroundTasks,
-    request: RerankRequest
-):
+async def rerank_pool(bg_tasks: BackgroundTasks, request: RerankRequest):
     print(f"\n[INFO] Received rerank request: {request.feedback_type} for item: {request.item_url} on upload ID: {request.upload_id}")
     try:
         previous_results = get_results_by_upload_id(request.upload_id)
-        bg_tasks.add_task(
-            insert_rerank_feedback,
-            request.upload_id,
-            request.item_url,
-            request.feedback_type
-        )
+        bg_tasks.add_task(insert_rerank_feedback, request.upload_id, request.item_url, request.feedback_type)
 
         feedback_history = get_feedback_for_upload(request.upload_id)
         processed_items = rerank(previous_results, feedback_history)
         return FetchInitialResponse(pool=processed_items)
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "message": f"Reranking crashed: {str(e)}"
-            }
-        )
+        return ServerError(message=f"Reranking crashed: {str(e)}")
