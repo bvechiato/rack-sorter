@@ -1,17 +1,6 @@
 import sqlite3
-from dataclasses import dataclass
-from typing import Tuple
 from . import constants
-
-
-@dataclass
-class RerankFeedback:
-    item_url: str
-    feedback_type: str
-
-    @staticmethod
-    def from_row(row: Tuple) -> "RerankFeedback":
-        return RerankFeedback(item_url=row[0], feedback_type=row[1])
+from dtos import RerankFeedback
 
 
 def insert_rerank_feedback(upload_id: int, item_url: str, feedback_type: str):
@@ -27,7 +16,7 @@ def insert_rerank_feedback(upload_id: int, item_url: str, feedback_type: str):
     conn.close()
 
 
-def get_feedback_for_upload(upload_id: int):
+def get_feedback_for_upload(upload_id: int) -> list[RerankFeedback]:
     conn = sqlite3.connect(constants.DB)
     cursor = conn.cursor()
 

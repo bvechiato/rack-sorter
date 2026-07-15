@@ -1,42 +1,9 @@
 import json
 import sqlite3
-from typing import List, Iterable, Union, Any, Dict, Optional
-from dataclasses import dataclass, field
+from typing import List, Iterable, Union
 from . import constants
 import numpy as np
-
-@dataclass
-class SearchItem:
-    title: str
-    url: str
-    image_url: Optional[str] = None
-    embedding: Optional[List[float]] = None
-    data: Dict[str, Any] = field(default_factory=dict)
-
-    @staticmethod
-    def from_dict(d: Dict[str, Any]) -> "SearchItem":
-        title = d.get("title")
-        url = d.get("url")
-        image_url = d.get("image_url")
-        embedding = d.get("embedding")
-        data = {k: v for k, v in d.items() if k not in {"title", "url", "image_url", "embedding"}}
-        return SearchItem(title=title, url=url, image_url=image_url, embedding=embedding, data=data)
-
-    def to_dict(self) -> Dict[str, Any]:
-        base = {"title": self.title, "url": self.url}
-        if self.image_url is not None:
-            base["image_url"] = self.image_url
-        if self.embedding is not None:
-            base["embedding"] = self.embedding
-        base.update(self.data)
-        return base
-
-    def to_json(self) -> str:
-        return json.dumps(self.to_dict(), ensure_ascii=False)
-
-    @staticmethod
-    def from_json(s: str) -> "SearchItem":
-        return SearchItem.from_dict(json.loads(s))
+from dtos import SearchItem
 
 
 def get_items_by_query_id(query_id: int) -> List[SearchItem]:
@@ -52,7 +19,6 @@ def get_items_by_query_id(query_id: int) -> List[SearchItem]:
     results = cursor.fetchall()
     conn.close()
     
-    # Convert results to a list of dictionaries
     items = []
     for row in results:
         si = SearchItem.from_json(row[3])

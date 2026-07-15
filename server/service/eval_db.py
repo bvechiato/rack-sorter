@@ -4,12 +4,9 @@ import os
 from repository.constants import UPLOADS_PATH, DB, CREATE_TABLES_QUERY
 from repository.query import insert_query
 from repository.search_items import insert_search_items
-import numpy as np
 
 def save_query_to_db(upload_id, keyword, query_params, items):
     query_id = insert_query(upload_id, keyword, query_params)
-    # Ensure embeddings are plain Python lists of floats so the repository
-    # can store them as float32 BLOBs.
     sanitized = []
     for it in items:
         if isinstance(it, dict):

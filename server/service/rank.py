@@ -4,15 +4,24 @@ from PIL import Image
 import cloudscraper
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoImageProcessor, AutoModel
+from dtos import SearchItem
+from .repository import get_upload_bytes_by_id
+from repository.user_uploads import get_embedding_by_upload_id, insert_embedding_for_upload
 
 MODEL_ID = "facebook/dinov2-base"
 processor = AutoImageProcessor.from_pretrained(MODEL_ID)
 model = AutoModel.from_pretrained(MODEL_ID)
 print("[SUCCESS] Initialised local DINOv2 for vector extraction")
 
-def process_and_rank_pool(scraped_items: list, anchor_image_bytes: bytes) -> list:  
-    anchor_features = process_and_normalise(anchor_image_bytes)
-    ranked_pool = []
+def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> list[SearchItem]:  
+    try:
+        anchor_features = get_embedding_by_upload_id(upload_id)
+    except Exception as e:
+        anchor_bytes = get_upload_bytes_by_id(upload_id) 
+        anchor_features = process_and_normalise(anchor_bytes)
+        insert_embedding_for_upload(upload_id, anchor_features.squeeze().numpy().tolist())
+
+    ranked_pool = set()
     for item in scraped_items:
         try:
             image = fetch_image_bytes_from_url(item)
@@ -26,23 +35,20 @@ def process_and_rank_pool(scraped_items: list, anchor_image_bytes: bytes) -> lis
                 anchor_features.numpy(), 
                 scraped_item_features.numpy()
             )[0][0]
-            
-            item["similarity_score"] = float(similarity)
-            item["embedding"] = (
+
+            item.similarity_score = float(similarity)
+            item.embedding = (
                 scraped_item_features
                     .squeeze()
                     .numpy()
                     .tolist()
             )
-            ranked_pool.append(item)
-            
+            ranked_pool.add(item)  
         except Exception as e:
             print(f"[WARN] Skipping item due to error: {e}")
             continue
 
-    # Sort best geometric matches to the top
-    ranked_pool.sort(key=lambda x: x["similarity_score"], reverse=True)
-    return ranked_pool
+    return sorted(list(ranked_pool), key=lambda x: x.similarity_score, reverse=True)
 
 def process_and_normalise(image_bytes) -> list:
     """Extracts DINOv2 visual features from a single image."""
@@ -55,12 +61,12 @@ def process_and_normalise(image_bytes) -> list:
         features /= features.norm(dim=-1, keepdim=True)
     return features
 
-def fetch_image_bytes_from_url(item) -> bytes:
+def fetch_image_bytes_from_url(item: SearchItem) -> bytes:
     """Fetches image bytes from a given item using cloudscraper."""
     scraper = cloudscraper.create_scraper()
-    image_url = item.get("image_url")
+    image_url = item.image_url
     if not image_url:
-        print(f"[WARN] No image URL found for item: {item.get('title', 'Unknown')}")
+        print(f"[WARN] No image URL found for item: {item.title}")
         return None
         
     response = scraper.get(image_url, timeout=3)
