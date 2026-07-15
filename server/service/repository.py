@@ -15,20 +15,8 @@ def get_upload_bytes_by_id(upload_id: int) -> bytes:
     with open(full_path, 'rb') as file:
         return file.read()
 
-def get_results_by_upload_id(upload_id: int) -> list:
+def get_results_by_upload_id(upload_id: int) -> list[dict]:
     query_dto = get_query_by_upload_id(upload_id)
 
     query_id = query_dto.id
-    items = get_items_by_query_id(query_id)
-    sanitized = []
-    for item in items:
-        if isinstance(item, dict):
-            sanitized.append(item)
-        elif hasattr(item, "to_dict"):
-            sanitized.append(item.to_dict())
-        else:
-            try:
-                sanitized.append(vars(item))
-            except TypeError:
-                sanitized.append(item)
-    return sanitized
+    return get_items_by_query_id(query_id)

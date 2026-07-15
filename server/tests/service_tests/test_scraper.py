@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 import service.scraper as scraper
+from dtos import SearchItem
 
 
 def make_response(text, status=200):
@@ -21,9 +22,10 @@ def test_scrape_vinted_pool_basic(monkeypatch):
 
     monkeypatch.setattr(scraper, 'requests', FakeRequests())
     items = scraper.scrape_vinted_pool('q=1')
-    assert isinstance(items, list)
+    assert isinstance(items, set)
     assert len(items) == 2
-    assert items[0]['image_url'].startswith('https://images1.vinted.net')
+    assert all(isinstance(item, SearchItem) for item in items)
+    assert any(item.image_url.startswith('https://images1.vinted.net') for item in items)
 
 
 def test_scraper_handles_bad_status(monkeypatch):
@@ -61,5 +63,6 @@ def test_scraper_deduplicates_and_filters_non_vinted_images(monkeypatch):
     items = scraper.scrape_vinted_pool('q=1')
 
     assert len(items) == 1
-    assert items[0]['url'] == 'https://www.vinted.co.uk/itm/1'
-    assert items[0]['title'] == 'A'
+    first_item = next(iter(items))
+    assert first_item.url == 'https://www.vinted.co.uk/itm/1'
+    assert first_item.title == 'A'

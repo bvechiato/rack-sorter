@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS user_uploads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     image_path TEXT,
+    embedding BLOB,
     model_version TEXT DEFAULT 'v1.0'
 );
 

@@ -13,7 +13,7 @@ def test_searchitem_serialization():
     assert s2.data["k"] == "v"
 
 
-def test_get_items_by_query_id_monkeypatch(monkeypatch):
+def test_get_items_by_query_id(monkeypatch):
     rows = [("t", "u", "i", json.dumps({"title": "t", "url": "u", "image_url": "i", "foo": "bar"}))]
 
     class FakeConn:

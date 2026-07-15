@@ -2,8 +2,9 @@ import re
 from bs4 import BeautifulSoup
 from fastapi import HTTPException
 from curl_cffi import requests
+from dtos import SearchItem
 
-def scrape_vinted_pool(query_params: str) -> list:
+def scrape_vinted_pool(query_params: str) -> set[SearchItem]:
     """Hits the public Vinted catalog endpoint with exact profile constraints."""
     url = f"https://www.vinted.co.uk/catalog?&{query_params}&order=newest_first"
 
@@ -23,7 +24,7 @@ def scrape_vinted_pool(query_params: str) -> list:
             raise HTTPException(status_code=502, detail="Vinted protection wall blocked request")
         
         soup = BeautifulSoup(response.text, "html.parser")
-        items_pool = []
+        items_pool = set()
         seen_urls = set()
         
         for item_div in soup.find_all("div", class_=re.compile(r"feed-grid__item|item-box")):
@@ -42,12 +43,7 @@ def scrape_vinted_pool(query_params: str) -> list:
                         continue
                         
                     seen_urls.add(full_href)
-                    items_pool.append({
-                        "title": title,
-                        "url": full_href,
-                        "image_url": img_url
-                    })
-                    
+                    items_pool.add(SearchItem(title=title, url=full_href, image_url=img_url))
             if len(items_pool) >= 150: 
                 break
                 
