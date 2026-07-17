@@ -59,12 +59,12 @@ const ProductGrid: React.FC<{
             </div>
 
             <div className="feedback-actions">
-              <button onClick={() => onFeedback(item.url, 'MORE')}>
-                👍 More Like This
+              <button className="feedback-actions-button" onClick={() => onFeedback(item.url, 'MORE')}>
+                👍 
               </button>
 
-              <button onClick={() => onFeedback(item.url, 'LESS')}>
-                👎 Less Like This
+              <button className="feedback-actions-button" onClick={() => onFeedback(item.url, 'LESS')}>
+                👎 
               </button>
             </div>
           </div>

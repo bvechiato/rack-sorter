@@ -4,6 +4,9 @@
 
 Rack Sorter is a fashion discovery app that helps users find clothing listings visually similar to a reference image. A user uploads a photo, the app analyzes the image, and then it searches Vinted for items that match the visual style and selected filters.
 
+![til](./assets/racksorter_wip.gif)
+
+
 ## How Client and Server Work Together
 
 The app is split into two main parts:
