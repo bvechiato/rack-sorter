@@ -117,7 +117,7 @@ async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest)
     return FetchInitialResponse(pool=_serialize_items(processed_items))
 
 @app.post("/rerank")
-async def rerank_pool(bg_tasks: BackgroundTasks, request: RerankRequest):
+async def rerank_pool(request: RerankRequest):
     print(f"\n[INFO] Received rerank request: {request.feedback_type} for item: {request.item_url} on upload ID: {request.upload_id}")
     try:
         insert_rerank_feedback(request.upload_id, request.item_url, request.feedback_type)
@@ -129,3 +129,19 @@ async def rerank_pool(bg_tasks: BackgroundTasks, request: RerankRequest):
         return FetchInitialResponse(pool=_serialize_items(processed_items))
     except Exception as e:
         return ServerError(message=f"Reranking crashed: {str(e)}")
+
+
+@app.get("/get-feedback-chips")
+async def get_feedback_chips(anchor_id: int, clicked_item_url: str):
+    # 1. Fetch the already computed CLIP embedding for the anchor (from Step 1)
+    anchor_clip_emb = get_fashion_clip_embedding(anchor_id)
+    
+    # 2. Grab the clicked item's image and compute its CLIP embedding on the fly
+    # (Since this is only done for ONE image when clicked, compute time is ~50ms)
+    clicked_image_bytes = fetch_image_bytes_from_url(clicked_item_url)
+    clicked_clip_emb = compute_single_fashion_clip_embedding(clicked_image_bytes)
+    
+    # 3. Get the terms that make the clicked item DIFFERENT from the anchor
+    dynamic_chips = get_differing_concepts(anchor_clip_emb, clicked_clip_emb)
+    
+    return {"suggested_chips": dynamic_chips}

@@ -163,6 +163,23 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 6px 0; }
 @media (min-width: 600px) { .results-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 900px) { .results-grid { grid-template-columns: repeat(5, 1fr); } }
 
+.feedback-actions {
+    display: inline-flex;
+    gap: 10px;
+}
+
+.feedback-actions-button {
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    color: var(--text-muted);
+    transition: color 0.2s, transform 0.2s;
+}
+
 .product-card {
     background: var(--surface);
     border: 1px solid var(--border);
