@@ -1,8 +1,8 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-from repository.search_items import get_item_by_url
-from repository.user_uploads import get_embedding_by_upload_id
+from model.repository.search_items import get_item_by_url
+from model.repository.user_uploads import get_embedding_by_upload_id
 from dtos import SearchItem, RerankFeedback
 
 
