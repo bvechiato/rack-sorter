@@ -1,8 +1,8 @@
 import os
-from repository.user_uploads import get_upload_by_id
-from repository.query import get_query_by_upload_id
-from repository.search_items import get_items_by_query_id
-from repository.constants import UPLOADS_PATH
+from model.repository.user_uploads import get_upload_by_id
+from model.repository.query import get_query_by_upload_id
+from model.repository.search_items import get_items_by_query_id
+from model.repository.constants import UPLOADS_PATH
 
 def get_upload_bytes_by_id(upload_id: int) -> bytes:
     upload = get_upload_by_id(upload_id)

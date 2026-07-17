@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoImageProcessor, AutoModel
 from dtos import SearchItem
 from .repository import get_upload_bytes_by_id
-from repository.user_uploads import get_embedding_by_upload_id, insert_embedding_for_upload
+from model.repository.user_uploads import get_embedding_by_upload_id, insert_embedding_for_upload
 
 MODEL_ID = "facebook/dinov2-base"
 processor = AutoImageProcessor.from_pretrained(MODEL_ID)

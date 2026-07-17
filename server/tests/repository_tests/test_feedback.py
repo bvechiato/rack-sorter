@@ -1,5 +1,5 @@
-from repository.feedback import get_feedback_for_upload, RerankFeedback
-import repository.feedback as mod
+from model.repository.feedback import get_feedback_for_upload, RerankFeedback
+import model.repository.feedback as mod
 
 
 def test_rerankfeedback_from_row():

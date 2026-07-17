@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from api.models import *
 from api.errors import ServerError
-from repository.search_items import SearchItem
+from model.repository.search_items import SearchItem
 from service.scraper import scrape_vinted_pool
 from service.rerank import rerank
 from service.rank import process_and_rank_pool
@@ -15,34 +15,8 @@ from service.identifier import extract_tags_from_image
 from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
 from service.eval_db import save_query_to_db, init, save_user_upload
 from service.repository import get_results_by_upload_id
-from repository.feedback import insert_rerank_feedback, get_feedback_for_upload
-
-
-def _serialize_items(items) -> list[ItemResponse]:
-    serialized = []
-    for item in items:
-        if isinstance(item, dict):
-            title = item.get("title", "")
-            url = item.get("url", "")
-            image_url = item.get("image_url", "") or ""
-            similarity_score = item.get("similarity_score", item.get("rerank_score", 0.0))
-        else:
-            title = getattr(item, "title", "")
-            url = getattr(item, "url", "")
-            image_url = getattr(item, "image_url", "") or ""
-            similarity_score = getattr(item, "similarity_score", None)
-            if similarity_score is None:
-                similarity_score = getattr(item, "rerank_score", 0.0)
-
-        serialized.append(
-            ItemResponse(
-                title=title,
-                url=url,
-                image_url=image_url,
-                similarity_score=float(similarity_score or 0.0),
-            )
-        )
-    return serialized
+from model.repository.feedback import insert_rerank_feedback, get_feedback_for_upload
+from model.repository import to_ItemResponse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -114,7 +88,7 @@ async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest)
     processed_items = process_and_rank_pool(items, request.uploadId)
 
     bg_tasks.add_task(save_query_to_db, request.uploadId, keyword, query_params, processed_items)
-    return FetchInitialResponse(pool=_serialize_items(processed_items))
+    return FetchInitialResponse(pool=to_ItemResponse(processed_items))
 
 @app.post("/rerank")
 async def rerank_pool(request: RerankRequest):
@@ -126,7 +100,7 @@ async def rerank_pool(request: RerankRequest):
         feedback_history = get_feedback_for_upload(request.upload_id)
 
         processed_items = rerank(previous_results, feedback_history, upload_id=request.upload_id)
-        return FetchInitialResponse(pool=_serialize_items(processed_items))
+        return FetchInitialResponse(pool=to_ItemResponse(processed_items))
     except Exception as e:
         return ServerError(message=f"Reranking crashed: {str(e)}")
 

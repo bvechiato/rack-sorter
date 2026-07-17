@@ -1,9 +1,9 @@
 import sqlite3
 import uuid
 import os
-from repository.constants import UPLOADS_PATH, DB, CREATE_TABLES_QUERY
-from repository.query import insert_query
-from repository.search_items import insert_search_items
+from model.repository.constants import UPLOADS_PATH, DB, CREATE_TABLES_QUERY
+from model.repository.query import insert_query
+from model.repository.search_items import insert_search_items
 
 def save_query_to_db(upload_id, keyword, query_params, items):
     query_id = insert_query(upload_id, keyword, query_params)
