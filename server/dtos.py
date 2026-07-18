@@ -41,11 +41,15 @@ class SearchItem:
 class RerankFeedback:
     item_url: str
     feedback_type: str
+    concept: str
 
     @staticmethod
     def from_row(row: Tuple) -> "RerankFeedback":
-        return RerankFeedback(item_url=row[0], feedback_type=row[1])
-    
+        if len(row) == 3:
+            return RerankFeedback(item_url=row[0], feedback_type=row[1], concept=row[2])
+        else:
+            return RerankFeedback(item_url=row[0], feedback_type=row[1])
+
 @dataclass
 class QueryDTO:
     id: int

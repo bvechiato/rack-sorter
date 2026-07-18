@@ -28,7 +28,7 @@ def test_ranks_matching_items(monkeypatch):
     monkeypatch.setattr(rank, "process_and_normalise", fake_process_and_normalise)
     monkeypatch.setattr(
         rank,
-        "fetch_image_bytes_from_url",
+        "fetch_image_bytes_from_item",
         lambda item: {"good": b"match", "bad": b"mismatch"}.get(item.title),
     )
     monkeypatch.setattr(rank, "get_embedding_by_upload_id", fake_get_embedding_by_upload_id)
@@ -72,7 +72,7 @@ def test_fallback_when_embedding_not_in_db(monkeypatch):
     monkeypatch.setattr(rank, "get_upload_bytes_by_id", fake_get_upload_bytes_by_id)
     monkeypatch.setattr(rank, "process_and_normalise", fake_process_and_normalise)
     monkeypatch.setattr(rank, "insert_embedding_for_upload", fake_insert_embedding)
-    monkeypatch.setattr(rank, "fetch_image_bytes_from_url", lambda item: b"some_bytes")
+    monkeypatch.setattr(rank, "fetch_image_bytes_from_item", lambda item: b"some_bytes")
 
     # when
     ranked = rank.process_and_rank_pool(
@@ -92,7 +92,7 @@ def test_skips_item_when_image_fetch_fails(monkeypatch):
     # Simulating a failed download (returns None) for 'broken', but successful for 'working'
     monkeypatch.setattr(
         rank, 
-        "fetch_image_bytes_from_url", 
+        "fetch_image_bytes_from_item", 
         lambda item: b"valid_image" if item.title == "working" else None
     )
     monkeypatch.setattr(rank, "process_and_normalise", lambda bytes: FakeTensor([[1.0, 0.0]]))
@@ -110,7 +110,7 @@ def test_skips_item_when_image_fetch_fails(monkeypatch):
 def test_skips_corrupted_image_processing(monkeypatch):
     # given
     monkeypatch.setattr(rank, "get_embedding_by_upload_id", lambda id: FakeTensor([[1.0, 0.0]]))
-    monkeypatch.setattr(rank, "fetch_image_bytes_from_url", lambda item: item.title.encode())
+    monkeypatch.setattr(rank, "fetch_image_bytes_from_item", lambda item: item.title.encode())
 
     # Throw an error only when trying to process the corrupt image
     def fake_process_and_normalise(image_bytes):

@@ -38,6 +38,7 @@ export async function rerank(data: {
   upload_id: number;
   item_url: string;
   feedback_type: string;
+  concept?: string;
 }) {
   const response = await fetch('/rerank', {
     method: 'POST',
@@ -52,4 +53,16 @@ export async function rerank(data: {
   }
 
   return response.json();
+}
+
+type ItemComparisonRequest = components['schemas']['ItemComparisonRequest'];
+type ItemComparisonResponse = components['schemas']['ItemComparisonResponse'];
+
+export async function compare(data: ItemComparisonRequest): Promise<ItemComparisonResponse> {
+  const res = await fetch(`/compare`, { 
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json' }, 
+    body: JSON.stringify(data)
+  });
+  return await handleResponse<ItemComparisonResponse>(res);
 }

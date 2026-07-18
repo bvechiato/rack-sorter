@@ -13,13 +13,12 @@ print("[SUCCESS] Initialised local CLIP model for item classification and feedba
 
 CONCEPT_VOCABULARY = list(dict.fromkeys(CANDIDATE_TAGS))
 
-# 3. Pre-compute concept text embeddings once on startup using your exact tags
 def precompute_concept_embeddings(concepts: list[str]) -> np.ndarray:
     print(f"[INFO] Pre-computing text embeddings for {len(concepts)} unique concept tags...")
     inputs = processor(text=concepts, return_tensors="pt", padding=True)
     with torch.no_grad():
         text_features = model.get_text_features(**inputs)
-        # Normalize vectors to unit length for clean cosine similarity
+        # Normalise vectors to unit length for clean cosine similarity
         text_features /= text_features.norm(dim=-1, keepdim=True)
     return text_features.numpy()
 
@@ -69,9 +68,8 @@ def zero_shot_classification(image: Image, candidate_tags: list[str], limit: int
         "classified_tags": [pair[0] for pair in final_tags]
     }
 
-
 def get_single_clip_embedding(image_bytes: bytes) -> np.ndarray:
-    """Helper to generate a clean, normalized FashionCLIP vector from image bytes."""
+    """Helper to generate a clean, normalized 512-dim FashionCLIP vector from image bytes."""
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     inputs = processor(images=image, return_tensors="pt")
     with torch.no_grad():
@@ -79,27 +77,45 @@ def get_single_clip_embedding(image_bytes: bytes) -> np.ndarray:
         features /= features.norm(dim=-1, keepdim=True)
     return features.squeeze().numpy()
 
-
-def extract_relative_feedback_chips(anchor_image_bytes: bytes, clicked_item_image_bytes: bytes, top_k: int = 3) -> list[str]:
+def extract_relative_feedback_chips(
+    anchor_image_bytes: bytes, 
+    clicked_item_image_bytes: bytes, 
+    top_k: int = 3
+) -> list[str]:
     """
-    Finds concepts highly present in the clicked item but weaker or absent in the anchor.
+    Finds concepts highly present in the clicked item but weaker or absent in the anchor
+    using 512-dimensional FashionCLIP image spaces.
     """
-    anchor_vector = get_single_clip_embedding(anchor_image_bytes).reshape(1, -1)
-    clicked_vector = get_single_clip_embedding(clicked_item_image_bytes).reshape(1, -1)
+    print(f"[INFO] Extracting relative differences using FashionCLIP")
     
-    # Calculate similarities to all vocabulary terms
-    anchor_similarities = cosine_similarity(anchor_vector, CACHED_CONCEPT_EMBEDDINGS)[0]
-    clicked_similarities = cosine_similarity(clicked_vector, CACHED_CONCEPT_EMBEDDINGS)[0]
-    relative_differences = clicked_similarities - anchor_similarities
-    
-    ranked_indices = np.argsort(relative_differences)[::-1]
-    
-    dynamic_chips = []
-    for idx in ranked_indices:
-        if clicked_similarities[idx] > 0.18: 
-            dynamic_chips.append(CONCEPT_VOCABULARY[idx])
+    try:
+        # 1. Generate the 512-dim FashionCLIP vectors on the fly for just these two items
+        anchor_vector = get_single_clip_embedding(anchor_image_bytes).reshape(1, -1)
+        clicked_vector = get_single_clip_embedding(clicked_item_image_bytes).reshape(1, -1)
         
-        if len(dynamic_chips) >= top_k:
-            break
+        # 2. Calculate similarities to all vocabulary terms (512 vs 512 matrix multiplication)
+        anchor_similarities = cosine_similarity(anchor_vector, CACHED_CONCEPT_EMBEDDINGS)[0]
+        clicked_similarities = cosine_similarity(clicked_vector, CACHED_CONCEPT_EMBEDDINGS)[0]
+        
+        relative_differences = clicked_similarities - anchor_similarities
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to calculate similarities: {e}")
+        return []
+    
+    try:
+        ranked_indices = np.argsort(relative_differences)[::-1]
+        
+        dynamic_chips = []
+        for idx in ranked_indices:
+            # Enforce baseline threshold to ensure the clicked item actually contains the attribute
+            if clicked_similarities[idx] > 0.18: 
+                dynamic_chips.append(CONCEPT_VOCABULARY[idx])
             
-    return dynamic_chips
+            if len(dynamic_chips) >= top_k:
+                break
+                
+        return dynamic_chips
+    except Exception as e:
+        print(f"[ERROR] Failed to extract relative feedback: {e}")
+        return []
