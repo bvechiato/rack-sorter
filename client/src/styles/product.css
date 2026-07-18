@@ -1,0 +1,196 @@
+/* GRID */
+.results-grid-masonry {
+  display: flex;
+  gap: 20px;          /* Modern gutter control: No negative margins needed! */
+  width: 100%;        /* Keeps it strictly locked inside your page layout */
+  box-sizing: border-box;
+}
+
+.results-grid-masonry_column {
+  flex: 1;            /* Forces columns to divide the space completely evenly */
+  min-width: 0;       /* Prevents text/content from pushing the column wider than it should be */
+}
+
+.results-grid-masonry_column > div {
+  margin-bottom: 20px; 
+}
+
+.product-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: white;
+    width: 100%; 
+    max-width: 100%;
+}
+.product-card img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+}
+.product-info { padding: 10px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+.product-title { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-weight: 500; }
+.product-score { color: var(--accent); font-size: 11px; font-weight: bold; }
+
+
+/* PRIMARY */
+/* The Toolbar Container */
+.product-action-bar {
+  display: flex;
+  background: #161616; /* Deep dark base that matches the card */
+  border: 1px solid #262626; /* Subtle framing border */
+  border-radius: 10px;
+  margin-top: 14px;
+  overflow: hidden; /* Ensures the corner radiuses clip perfectly */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Base style for all 3 segments */
+.action-bar-btn {
+  flex: 1; /* FORCES EXACTLY EQUAL WIDTHS across all three buttons */
+  height: 38px;
+  background: transparent;
+  border: none;
+  color: #dddddd;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+/* Add elegant dividers between the segments */
+.action-bar-btn:not(:last-child) {
+  border-right: 1px solid #262626;
+}
+
+/* Hover effects: Sleek and highly unified */
+.action-bar-btn:hover {
+  background: #222222;
+  color: #ffffff;
+}
+
+/* Light up the text with your brand cyan when it's an available action */
+.action-bar-btn.compare-trigger {
+  color: #64dfdf;
+}
+
+/* Contextual color hints when hovering over specific feedback paths */
+.action-bar-btn[title="More Like This"]:hover {
+  background: rgba(100, 223, 223, 0.08);
+}
+.action-bar-btn[title="Less Like This"]:hover {
+  background: rgba(255, 90, 95, 0.08);
+}
+
+/* When active/compared, it stays beautifully integrated instead of turning into a dead eyesore */
+.action-bar-btn.compare-trigger.active {
+  background: rgba(100, 223, 223, 0.1);
+  color: #64dfdf;
+  cursor: default;
+}
+
+/* Scale down the emoji size slightly so they don't crowd the buttons */
+.btn-icon {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+/* Clean spacing adjustments for the traits module directly below it */
+.trait-refinement-container {
+  margin-top: 16px;
+  border-top: 1px solid #222222;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+/* SECONDARY ROW */
+/* Outer box container below buttons */
+.trait-refinement-container {
+  margin-top: 14px;
+  border-top: 1px solid #1e1e1e;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.trait-heading {
+  font-size: 0.72rem;
+  color: #888;
+  font-weight: 500;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Flex wrapper holding the individual pills */
+.trait-pills-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 6px;
+}
+
+/* The parent multi-segmented pill bubble */
+.trait-split-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #222222;
+  border: 1px solid #333333;
+  border-radius: 16px;
+  overflow: hidden;
+  height: 26px;
+}
+
+/* Left Label: Shows the name of the feature */
+.trait-name {
+  font-size: 0.72rem;
+  color: #ffffff;
+  padding: 0 10px;
+  font-weight: 500;
+  border-right: 1px solid #333333;
+  user-select: none;
+}
+
+/* Right Actions: Interactive control toggles */
+.trait-action-btn {
+  background: transparent;
+  border: none;
+  color: #aaaaaa;
+  font-size: 0.75rem;
+  width: 24px;
+  height: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+/* Divider lines inside action compartments */
+.trait-action-btn.boost {
+  border-right: 1px solid #333333;
+}
+
+/* Interactive feedback indicators matching response weight */
+.trait-action-btn.boost:hover {
+  background: #64dfdf;
+  color: #000000;
+}
+
+.trait-action-btn.bury:hover {
+  background: #ff5a5f;
+  color: #ffffff;
+}

@@ -3,13 +3,15 @@ import Header from './components/Header';
 import SearchActionBar from './components/SearchActionBar';
 import KeywordSuggestions from './components/KeywordSuggestions';
 import PreferencesPanel from './components/preferences/PreferencesPanel';
-import ProductGrid from './components/ProductGrid';
+import ProductGrid from './components/product/ProductGrid';
+import ActiveFiltersSummary from './components/preferences/ActiveFiltersSummary';
 import LoadingIndicator from './components/LoadingIndicator';
 import {
   useFilters,
   useImageAnalysis,
   useProductSearch,
   useUIState,
+  useCompareItem
 } from './hooks';
 import './styles/index.css';
 import './styles/generic.css';
@@ -18,6 +20,7 @@ function App() {
   const { filters, actions: filterActions } = useFilters();
   const { state: imageState, actions: imageActions } = useImageAnalysis();
   const { state: searchState, actions: searchActions } = useProductSearch();
+  const { state: comparisonState, actions: comparisonActions } = useCompareItem();
   const { state: uiState, actions: uiActions } = useUIState();
 
   const handleImageUpload = async (file: File | null) => {
@@ -48,6 +51,12 @@ function App() {
     }
   }, [imageState.suggestedCategory]);
 
+  useEffect(() => {
+  if (imageState.showSuggestions && !uiState.preferencesOpen) {
+    uiActions.togglePreferences();
+  }
+}, [imageState.showSuggestions]);
+
   return (
     <div>
       <Header />
@@ -76,16 +85,30 @@ function App() {
         toggleColour={filterActions.toggleColour}
         selectedConditions={filters.selectedConditions}
         toggleCondition={filterActions.toggleCondition}
-        isOpen={uiState.preferencesOpen || imageState.showSuggestions}
+        isOpen={uiState.preferencesOpen}
         toggleOpen={uiActions.togglePreferences}
         onScrape={handleScrape}
       />
 
       {searchState.loading && <LoadingIndicator />}
 
+      {!searchState.loading && searchState.products.length > 0 && (
+        <ActiveFiltersSummary 
+          keyword={imageState.confirmedKeyword} 
+          filters={filters} 
+        />
+      )}
+
       <ProductGrid 
         products={searchState.products} 
-        onFeedback={(imageUrl: string, feedbackType: "MORE" | "LESS") => searchActions.rerankProducts(imageState.uploadId, imageUrl, feedbackType)}
+        onFeedback={(imageUrl: string, feedbackType: "MORE" | "LESS", concept?: string) => 
+          searchActions.rerankProducts(imageState.uploadId, imageUrl, feedbackType, concept)
+        }
+        onCompare={(imageUrl: string) => 
+          comparisonActions.compareItem(imageState.uploadId, imageUrl)
+        }
+        comparisonCharacteristics={comparisonState.characteristics}
+        comparisonLoadingMap={comparisonState.loadingMap}
       />
 
       <div

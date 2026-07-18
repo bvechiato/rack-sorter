@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class FetchInitialRequest(BaseModel):
     uploadId: int
@@ -33,3 +34,11 @@ class RerankRequest(BaseModel):
     upload_id: int
     item_url: str
     feedback_type: str
+    concept: Optional[str] = None
+
+class ItemComparisonRequest(BaseModel):
+    upload_id: int
+    item_clicked_url: str
+
+class ItemComparisonResponse(BaseModel):
+    distinguishing_characteristics: list[str]

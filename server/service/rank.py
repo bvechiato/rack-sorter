@@ -24,8 +24,9 @@ def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> lis
     ranked_pool = set()
     for item in scraped_items:
         try:
-            image = fetch_image_bytes_from_url(item)
+            image = fetch_image_bytes_from_item(item)
             if image is None:
+                print(f"[WARN] Skipping item, image not found")
                 continue
 
             scraped_item_features = process_and_normalise(image)
@@ -61,7 +62,7 @@ def process_and_normalise(image_bytes) -> list:
         features /= features.norm(dim=-1, keepdim=True)
     return features
 
-def fetch_image_bytes_from_url(item: SearchItem) -> bytes:
+def fetch_image_bytes_from_item(item: SearchItem) -> bytes:
     """Fetches image bytes from a given item using cloudscraper."""
     scraper = cloudscraper.create_scraper()
     image_url = item.image_url
@@ -72,5 +73,15 @@ def fetch_image_bytes_from_url(item: SearchItem) -> bytes:
     response = scraper.get(image_url, timeout=3)
     if response.status_code != 200:
         print(f"[WARN] Failed to fetch image from {image_url}, status code: {response.status_code}")
+        return None
+    return response.content
+
+def fetch_image_bytes_from_url(url: str) -> bytes:
+    """Fetches image bytes from a given item using cloudscraper."""
+    scraper = cloudscraper.create_scraper()
+        
+    response = scraper.get(url, timeout=3)
+    if response.status_code != 200:
+        print(f"[WARN] Failed to fetch image from {url}, status code: {response.status_code}")
         return None
     return response.content

@@ -36,7 +36,7 @@ export function useProductSearch() {
     }
   };
 
-  const rerankProducts = async (uploadId: any, itemUrl: string, feedbackType: 'MORE' | 'LESS') => {
+  const rerankProducts = async (uploadId: any, itemUrl: string, feedbackType: 'MORE' | 'LESS', concept?: string) => {
     if (!uploadId) {
       throw new Error('Missing upload id');
     }
@@ -48,6 +48,7 @@ export function useProductSearch() {
         upload_id: uploadId,
         item_url: itemUrl,
         feedback_type: feedbackType,
+        concept: concept ? concept : null
       });
 
       setProducts(rankedData.pool || []);

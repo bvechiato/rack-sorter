@@ -16,7 +16,7 @@ def get_upload_by_id(upload_id: int) -> UserUpload:
 
     return UserUpload.from_row(result)
 
-def get_embedding_by_upload_id(upload_id: int):
+def get_embedding_by_upload_id(upload_id: int) -> np.array:
     conn = sqlite3.connect(constants.DB)
     cursor = conn.cursor()
 

@@ -4,19 +4,20 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import os
 from contextlib import asynccontextmanager
+import numpy as np
 
 from api.models import *
 from api.errors import ServerError
 from model.repository.search_items import SearchItem
 from service.scraper import scrape_vinted_pool
 from service.rerank import rerank
-from service.rank import process_and_rank_pool
-from service.identifier import extract_tags_from_image
+from service.rank import process_and_rank_pool, fetch_image_bytes_from_url
+from service.identifier import extract_tags_from_image, extract_relative_feedback_chips
 from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
 from service.eval_db import save_query_to_db, init, save_user_upload
-from service.repository import get_results_by_upload_id
+from service.repository import get_results_by_upload_id, get_upload_bytes_by_id
 from model.repository.feedback import insert_rerank_feedback, get_feedback_for_upload
-from model.repository import to_ItemResponse
+from model.mapper import to_ItemResponse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -92,9 +93,10 @@ async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest)
 
 @app.post("/rerank")
 async def rerank_pool(request: RerankRequest):
-    print(f"\n[INFO] Received rerank request: {request.feedback_type} for item: {request.item_url} on upload ID: {request.upload_id}")
+    print(f"\n[INFO] Received rerank request: \nTYPE: {request.feedback_type} \nON: {request.concept} \n{request.item_url} \nUpload ID: {request.upload_id}")
     try:
-        insert_rerank_feedback(request.upload_id, request.item_url, request.feedback_type)
+        insert_rerank_feedback(request.upload_id, request.item_url, request.feedback_type, request.concept)
+        print(f"[SUCCESS] Inserted feedback")
         
         previous_results = get_results_by_upload_id(request.upload_id)
         feedback_history = get_feedback_for_upload(request.upload_id)
@@ -105,17 +107,19 @@ async def rerank_pool(request: RerankRequest):
         return ServerError(message=f"Reranking crashed: {str(e)}")
 
 
-@app.get("/get-feedback-chips")
-async def get_feedback_chips(anchor_id: int, clicked_item_url: str):
-    # 1. Fetch the already computed CLIP embedding for the anchor (from Step 1)
-    anchor_clip_emb = get_fashion_clip_embedding(anchor_id)
-    
-    # 2. Grab the clicked item's image and compute its CLIP embedding on the fly
-    # (Since this is only done for ONE image when clicked, compute time is ~50ms)
-    clicked_image_bytes = fetch_image_bytes_from_url(clicked_item_url)
-    clicked_clip_emb = compute_single_fashion_clip_embedding(clicked_image_bytes)
-    
-    # 3. Get the terms that make the clicked item DIFFERENT from the anchor
-    dynamic_chips = get_differing_concepts(anchor_clip_emb, clicked_clip_emb)
-    
-    return {"suggested_chips": dynamic_chips}
+@app.post("/compare")
+async def compare_items(request: ItemComparisonRequest) -> ItemComparisonResponse:
+    print(f"\n[INFO] Received item comparison request for item: {request.item_clicked_url} on upload ID: {request.upload_id}")
+    try:
+        anchor_bytes = get_upload_bytes_by_id(request.upload_id)
+        print(f"\n[SUCCESS] Got embedding for upload ID {request.upload_id}")
+        
+        clicked_bytes = fetch_image_bytes_from_url(request.item_clicked_url)
+        print(f"\n[SUCCESS] Got clicked item")
+
+        dynamic_chips = extract_relative_feedback_chips(anchor_bytes, clicked_bytes, top_k=3)
+        print(f"\n[SUCCESS] Extracted chips {request.upload_id}")
+
+        return ItemComparisonResponse(distinguishing_characteristics=dynamic_chips)
+    except Exception as e:
+        return ServerError(message=f"Comparison crashed: {str(e)}")
