@@ -2,19 +2,14 @@ import React from 'react';
 import { components } from '../../types/api';
 import '../../styles/product.css';
 
-
 type ItemResponse = components['schemas']['ItemResponse'];
 
 interface ProductCardProps {
   item: ItemResponse;
-  onFeedback: (
-    itemUrl: string,
-    feedbackType: 'MORE' | 'LESS',
-    concept?: string
-  ) => Promise<void>;
+  onFeedback: (itemUrl: string, feedbackType: 'MORE' | 'LESS', concept?: string) => Promise<void>;
   onCompare: (itemUrl: string) => Promise<void>;
-  characteristics?: string[]; // Receives only its own traits array
-  isLoading?: boolean;        // Receives only its own loading boolean
+  characteristics?: string[];
+  isLoading?: boolean;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({
@@ -29,76 +24,77 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return `${(score * 100).toFixed(0)}% Match`;
   };
 
+  const hasTraitsLoaded = characteristics !== undefined;
+
   return (
     <div className="product-card">
-      <a href={item.url} target="_blank" rel="noopener noreferrer">
-        <img src={item.image_url} alt="Listing" loading="lazy" />
+      <a href={item.url} target="_blank" rel="noopener noreferrer" className="product-img-link">
+        <img src={item.image_url} alt="Listing" loading="lazy" className="product-img" />
       </a>
 
       <div className="product-info">
         <div className="product-title">{item.title}</div>
         <div className="similarity-score-badge">{formatMatchScore(item.similarity_score)}</div>
 
-        {/* Primary Action Bar: Clean, equal-width segmented toolbar */}
-        <div className="product-action-bar">
-          <button 
-            className="action-bar-btn" 
+        {/* Primary Touch Grid Actions */}
+        <div className="product-actions-grid">
+          <div 
+            role="button"
+            className="action-btn action-btn-more"
             onClick={() => onFeedback(item.url, 'MORE')} 
-            title="More Like This"
           >
-            <span className="btn-icon">👍</span>
-          </button>
+            ＋ More
+          </div>
 
-          <button 
-            className="action-bar-btn" 
+          <div 
+            role="button"
+            className="action-btn action-btn-less"
             onClick={() => onFeedback(item.url, 'LESS')} 
-            title="Less Like This"
           >
-            <span className="btn-icon">👎</span>
-          </button>
+            － Less
+          </div>
 
-          {characteristics === undefined ? (
-            <button 
-              className="action-bar-btn compare-trigger" 
-              disabled={isLoading}
-              onClick={() => onCompare(item.image_url)}
-            >
-              {isLoading ? '...' : 'Compare'}
-            </button>
-          ) : (
-            <button className="action-bar-btn compare-trigger active" disabled>
-              ✓ Active
-            </button>
-          )}
+          <div 
+            role="button" 
+            onClick={() => !isLoading && onCompare(item.image_url)}
+            className={`tune-style-trigger ${hasTraitsLoaded ? 'is-active' : ''} ${isLoading ? 'is-loading' : ''}`}
+          >
+            Trait Specific
+          </div>
         </div>
 
-        {/* Secondary Section for Specific Aspect/Trait Feedback */}
-        {characteristics !== undefined && (
-          <div className="trait-refinement-container">
-            <span className="trait-heading">Tune specific characteristics:</span>
-            <div className="trait-pills-group">
+        {hasTraitsLoaded && (
+          <div className="trait-carousel-container">            
+            <div className="trait-carousel-track">
               {characteristics.length === 0 ? (
                 <span className="no-traits-label">No distinct traits found</span>
               ) : (
                 characteristics.map((char, idx) => (
-                  <div key={idx} className="trait-split-pill">
-                    <span className="trait-name">{char}</span>
+                  <div key={idx} className="trait-widget-card">
                     
-                    <button
-                      className="trait-action-btn boost"
-                      onClick={() => onFeedback(item.url, 'MORE', char)}
-                      title={`Show more items with ${char}`}
-                    >
-                      ＋
-                    </button>
+                    {/* Top Tier: Label */}
+                    <div className="trait-widget-title" title={char}>
+                      {char}
+                    </div>
                     
-                    <button
-                      className="trait-action-btn bury"
-                      onClick={() => onFeedback(item.url, 'LESS', char)}
-                      title={`Show fewer items with ${char}`}
-                    >
-                      －
-                    </button>
+                    {/* Bottom Tier: Split Action Row [ + | - ] */}
+                    <div className="trait-widget-actions">
+                      <div 
+                        role="button" 
+                        onClick={() => onFeedback(item.url, 'MORE', char)} 
+                        className="trait-widget-btn widget-btn-more"
+                      >
+                        ＋
+                      </div>
+                      <div 
+                        role="button" 
+                        onClick={() => onFeedback(item.url, 'LESS', char)} 
+                        className="trait-widget-btn widget-btn-less"
+                      >
+                        －
+                      </div>
+                    </div>
+
                   </div>
                 ))
               )}
