@@ -195,6 +195,8 @@ export interface components {
             item_url: string;
             /** Feedback Type */
             feedback_type: string;
+            /** Concept */
+            concept?: string | null;
         };
         /** ValidationError */
         ValidationError: {

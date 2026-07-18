@@ -1,18 +1,29 @@
 /* GRID */
+/* Core Structural Layout Configurations for react-masonry */
 .results-grid-masonry {
   display: flex;
-  gap: 20px;          /* Modern gutter control: No negative margins needed! */
-  width: 100%;        /* Keeps it strictly locked inside your page layout */
+  width: 100% !important; /* Force layout wrapper to span full width */
+  margin-left: -10px;      /* Gutter gap adjustment offsetting */
   box-sizing: border-box;
 }
 
 .results-grid-masonry_column {
-  flex: 1;            /* Forces columns to divide the space completely evenly */
-  min-width: 0;       /* Prevents text/content from pushing the column wider than it should be */
+  padding-left: 10px;      /* Internal spacing between columns */
+  background-clip: padding-box;
+  
+  /* ⚡ THE FIX: Force the columns to grow and occupy the empty space symmetrically */
+  flex: 1 !important;
+  min-width: 0 !important;
 }
 
-.results-grid-masonry_column > div {
-  margin-bottom: 20px; 
+/* Responsive Gutter Reductions for Ultra Mobile Viewports */
+@media (max-width: 480px) {
+  .results-grid-masonry {
+    margin-left: -6px; 
+  }
+  .results-grid-masonry_column {
+    padding-left: 6px; 
+  }
 }
 
 .product-card {
@@ -193,4 +204,230 @@
 .trait-action-btn.bury:hover {
   background: #ff5a5f;
   color: #ffffff;
+}
+
+/* PRODUCT CARD */
+.product-card {
+  background: #121214;
+  border: 1px solid #232329;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.product-img-link {
+  display: block;
+  width: 100%;
+}
+
+.product-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.product-info {
+  padding: 10px;
+}
+
+.product-title {
+  color: #f4f4f6;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.similarity-score-badge {
+  color: #00d2ff;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* ==========================================================================
+   TOUCH GRID ACTION BAR SETUP (2x2 INTERACTIVE LAYOUT)
+   ========================================================================== */
+.product-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.action-btn {
+  background: #1c1c21;
+  border: 1px solid #2e2e38;
+  border-radius: 6px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.action-btn-more {
+  color: #4ade80;
+}
+.action-btn-more:hover {
+  background: rgba(74, 222, 128, 0.05);
+  border-color: #4ade80;
+}
+
+.action-btn-less {
+  color: #f87171;
+}
+.action-btn-less:hover {
+  background: rgba(248, 113, 113, 0.05);
+  border-color: #f87171;
+}
+
+/* Custom Stateful Modifier Classes for the Style Toggle Trigger Button */
+.tune-style-trigger {
+  grid-column: 'span 2';
+  background: #1c1c21;
+  border: 1px solid #2e2e38;
+  border-radius: 6px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+  user-select: none;
+  cursor: pointer;
+  grid-column: span 2;
+  transition: all 0.2s ease;
+}
+
+.tune-style-trigger:hover {
+  border-color: #3f3f46;
+  color: #e4e4e7;
+}
+
+.tune-style-trigger.is-active {
+  background: rgba(0, 210, 255, 0.08);
+  border-color: #00d2ff;
+  color: #00d2ff;
+}
+
+.tune-style-trigger.is-loading {
+  cursor: wait;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* TRAITS */
+/* ==========================================================================
+   TRAIT CAROUSEL RIBBON & STACKED MICRO-WIDGETS
+   ========================================================================== */
+.trait-carousel-container {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #232329;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trait-carousel-heading {
+  font-size: 10px;
+  color: #a1a1aa; /* High contrast reading levels */
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding-left: 2px;
+}
+
+.trait-carousel-track {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;                      /* Enables horizontal scrolling */
+  scroll-snap-type: x proximity;         /* Clean snapping alignments */
+  -webkit-overflow-scrolling: touch;     /* Momentum swipe scrolling for iOS mobile devices */
+  gap: 8px;
+  padding: 4px 2px 6px 2px;
+  scrollbar-width: none;                 /* Modern browser scrollbar hiding */
+}
+
+.trait-carousel-track::-webkit-scrollbar {
+  display: none;                         /* Safari/Chrome scrollbar removal */
+}
+
+/* ==========================================================================
+   THE MICRO-WIDGET CARD (STACKED SYSTEM)
+   ========================================================================== */
+.trait-widget-card {
+  display: flex;
+  flex-direction: column;
+  background: #1c1c21;
+  border: 1px solid #2e2e38;
+  border-radius: 8px;
+  
+  /* ⚡ FIXED: Expanded width to give the split buttons more horizontal runway */
+  min-width: 110px;                       
+  max-width: 140px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  overflow: hidden;
+}
+
+/* Top half layout frame */
+.trait-widget-title {
+  font-size: 11px;
+  color: #e4e4e7;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 6px;
+  border-bottom: 1px solid #2e2e38;     /* The horizontal divider rule line */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+/* Bottom half action bar layout grid */
+.trait-widget-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;        /* Splits the row into 2 equal halves */
+  
+  /* ⚡ FIXED: Boosted target height to 46px to satisfy mobile thumb precision */
+  height: 46px;                          
+}
+
+.trait-widget-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* ⚡ FIXED: Increased symbol scale for absolute visibility */
+  font-size: 15px;                       
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+
+/* Left action divider segment setup */
+.widget-btn-more {
+  color: #4ade80;
+  border-right: 1px solid #2e2e38;      /* The vertical divider separating buttons */
+}
+.widget-btn-more:active {
+  background: rgba(74, 222, 128, 0.15); /* Slightly darker feedback highlight on press */
+}
+
+/* Right action segment setup */
+.widget-btn-less {
+  color: #f87171;
+}
+.widget-btn-less:active {
+  background: rgba(248, 113, 113, 0.15);
 }
