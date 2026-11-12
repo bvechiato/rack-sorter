@@ -5,10 +5,11 @@ import type { Trait } from '../static/constants';
 
 export type TraitPicks = Partial<Record<Trait, 'MORE' | 'LESS'>>;
 type TraitProfile = components['schemas']['TraitProfileResponse'];
+type Item = components['schemas']['ItemResponse'];
 
 export function useProductSearch() {
-  const [currentPool, setCurrentPool] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [currentPool, setCurrentPool] = useState<Item[]>([]);
+  const [products, setProducts] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   // Trait choices keyed by item URL. Kept outside the sheet so reopening it shows
   // what is already applied, and the card's Tune trigger can show an active state.

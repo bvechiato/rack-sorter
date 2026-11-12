@@ -1,20 +1,22 @@
+import logging
 import sqlite3
 from . import constants
 from dtos import RerankFeedback
+logger = logging.getLogger(__name__)
 
 
 def insert_rerank_feedback(upload_id: int, item_url: str, feedback_type: str, concept: str = None):
     conn = sqlite3.connect(constants.DB)
     cursor = conn.cursor()
 
-    print(f"[INFO] Inserting feedback for {upload_id}, {feedback_type}, {concept}, {item_url}")
+    logger.info(f"Inserting feedback for {upload_id}, {feedback_type}, {concept}, {item_url}")
     try:
         cursor.execute("""
             INSERT INTO rerank_feedback (upload_id, item_url, feedback_type, concept)
             VALUES (?, ?, ?, ?)
         """, (upload_id, item_url, feedback_type, concept))
     except Exception as e:
-        print(f"[WARN] Could not insert feedback: {e}")
+        logger.warning(f"Could not insert feedback: {e}")
 
     conn.commit()
     conn.close()

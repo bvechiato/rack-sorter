@@ -1,14 +1,49 @@
 import re
+import logging
+from typing import TYPE_CHECKING
 from bs4 import BeautifulSoup
 from fastapi import HTTPException
 from curl_cffi import requests
 from dtos import SearchItem
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from api.models import FetchInitialRequest
+
+
+def build_query_params(request: "FetchInitialRequest") -> str:
+    """Translate a fetch_initial request into Vinted catalog query params."""
+    keyword = request.keyword.replace(" ", "+")
+    from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP as _CAT
+
+    catalog_id = _CAT.get(request.selectedCategory, "")
+    colour_ids = []
+    for c_name in request.selectedColors.split(","):
+        if c_name in COLOUR_MAP.keys():
+            colour_ids.extend(COLOUR_MAP.get(c_name))
+
+    query_params = f"search_text={keyword}"
+    if catalog_id:
+        query_params += f"&catalog[]={catalog_id}"
+    if colour_ids:
+        for c_id in colour_ids:
+            query_params += f"&color_ids[]={c_id}"
+    if request.selectedSizes:
+        for size_id in request.selectedSizes.split(","):
+            query_params += f"&size_ids[]={size_id}"
+    if request.maxPrice:
+        query_params += f"&price_to={request.maxPrice}&currency=GBP"
+    if request.selectedConditions:
+        for cid in request.selectedConditions.split(","):
+            if cid:
+                query_params += f"&status_ids[]={cid}"
+    return query_params
 
 def scrape_vinted_pool(query_params: str) -> set[SearchItem]:
     """Hits the public Vinted catalog endpoint with exact profile constraints."""
     url = f"https://www.vinted.co.uk/catalog?&{query_params}"
 
-    print(f"\n[INFO] Target Scraping URL Generated: {url}\n")
+    logger.info(f"\nTarget Scraping URL Generated: {url}\n")
 
     headers = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
@@ -20,7 +55,7 @@ def scrape_vinted_pool(query_params: str) -> set[SearchItem]:
         response = requests.get(url, headers=headers, impersonate="chrome124", timeout=10)
         
         if response.status_code != 200:
-            print(f"\n[ERROR] Vinted responded with bad status: {response.status_code} \n {response.text}")
+            logger.error(f"\nVinted responded with bad status: {response.status_code} \n {response.text}")
             raise HTTPException(status_code=502, detail="Vinted protection wall blocked request")
         
         soup = BeautifulSoup(response.text, "html.parser")
@@ -47,7 +82,7 @@ def scrape_vinted_pool(query_params: str) -> set[SearchItem]:
             if len(items_pool) >= 150: 
                 break
                 
-        print(f"[SUCCESS] Collected {len(items_pool)} unique, deduplicated items.")
+        logger.info(f"Collected {len(items_pool)} unique, deduplicated items.")
         return items_pool
         
     except HTTPException as http_err:

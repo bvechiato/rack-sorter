@@ -1,4 +1,5 @@
 import io
+import logging
 import torch
 import numpy as np
 from PIL import Image
@@ -9,11 +10,27 @@ from dtos import SearchItem
 from .repository import get_upload_bytes_by_id
 from model.repository.user_uploads import get_embedding_by_upload_id, insert_embedding_for_upload
 from service.identifier import get_single_clip_embedding
-
+logger = logging.getLogger(__name__)
 MODEL_ID = "facebook/dinov2-base"
-processor = AutoImageProcessor.from_pretrained(MODEL_ID)
-model = AutoModel.from_pretrained(MODEL_ID)
-print("[SUCCESS] Initialised local DINOv2 for vector extraction")
+
+# Lazily loaded (on first use) so importing this module never downloads a model.
+processor = None
+model = None
+
+
+def get_dino_processor():
+    global processor
+    if processor is None:
+        processor = AutoImageProcessor.from_pretrained(MODEL_ID)
+    return processor
+
+
+def get_dino_model():
+    global model
+    if model is None:
+        model = AutoModel.from_pretrained(MODEL_ID)
+        logger.info("Initialised local DINOv2 for vector extraction")
+    return model
 
 def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> list[SearchItem]:  
     try:
@@ -37,7 +54,7 @@ def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> lis
         try:
             image = fetch_image_bytes_from_item(item)
             if image is None:
-                print(f"[WARN] Skipping item, image not found")
+                logger.warning(f"Skipping item, image not found")
                 continue
 
             scraped_item_features = process_and_normalise(image)
@@ -61,11 +78,11 @@ def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> lis
             try:
                 item.clip_embedding = get_single_clip_embedding(image).tolist()
             except Exception as e:
-                print(f"[WARN] CLIP embedding failed for {item.url}: {e}")
+                logger.warning(f"CLIP embedding failed for {item.url}: {e}")
 
             ranked_pool.add(item)  
         except Exception as e:
-            print(f"[WARN] Skipping item due to error: {e}")
+            logger.warning(f"Skipping item due to error: {e}")
             continue
 
     return sorted(list(ranked_pool), key=lambda x: x.similarity_score, reverse=True)
@@ -74,9 +91,11 @@ def process_and_normalise(image_bytes) -> list:
     """Extracts DINOv2 visual features from a single image."""
     image_payload = image_bytes.getvalue() if hasattr(image_bytes, "getvalue") else image_bytes
     image = Image.open(io.BytesIO(image_payload)).convert("L").convert("RGB")
-    inputs = processor(images=image, return_tensors="pt")
+    proc = get_dino_processor()
+    mdl = get_dino_model()
+    inputs = proc(images=image, return_tensors="pt")
     with torch.no_grad():
-        outputs = model(**inputs)
+        outputs = mdl(**inputs)
         features = outputs.pooler_output
         features /= features.norm(dim=-1, keepdim=True)
     return features
@@ -86,12 +105,12 @@ def fetch_image_bytes_from_item(item: SearchItem) -> bytes:
     scraper = cloudscraper.create_scraper()
     image_url = item.image_url
     if not image_url:
-        print(f"[WARN] No image URL found for item: {item.title}")
+        logger.warning(f"No image URL found for item: {item.title}")
         return None
         
     response = scraper.get(image_url, timeout=3)
     if response.status_code != 200:
-        print(f"[WARN] Failed to fetch image from {image_url}, status code: {response.status_code}")
+        logger.warning(f"Failed to fetch image from {image_url}, status code: {response.status_code}")
         return None
     return response.content
 
@@ -101,6 +120,6 @@ def fetch_image_bytes_from_url(url: str) -> bytes:
         
     response = scraper.get(url, timeout=3)
     if response.status_code != 200:
-        print(f"[WARN] Failed to fetch image from {url}, status code: {response.status_code}")
+        logger.warning(f"Failed to fetch image from {url}, status code: {response.status_code}")
         return None
     return response.content

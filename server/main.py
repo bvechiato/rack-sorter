@@ -8,20 +8,32 @@ from typing import Optional
 import logging
 import numpy as np
 
-from api.models import *
+from api.models import (
+    AnalyseAnchorImageResponse,
+    AnalyseResponse,
+    BatchRerankRequest,
+    FeedbackEvent,
+    FetchInitialRequest,
+    FetchInitialResponse,
+    ItemComparisonRequest,
+    ItemComparisonResponse,
+    RerankRequest,
+    TraitProfileResponse,
+)
 from api.errors import ServerError
 from model.repository.search_items import SearchItem
-from service.scraper import scrape_vinted_pool
+from service.scraper import scrape_vinted_pool, build_query_params
 from service.rerank import rerank
 from service.rank import process_and_rank_pool, fetch_image_bytes_from_url
 from service.pool import fetch_more_for_upload, reset_page_cursor
 from service.profile import build_trait_profile
 from service.identifier import extract_tags_from_image, extract_relative_feedback_chips
-from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
+
 from service.eval_db import save_query_to_db, init, save_user_upload
 from service.repository import get_results_by_upload_id, get_upload_bytes_by_id
 from model.repository.feedback import insert_rerank_feedback, get_feedback_for_upload
 from model.mapper import to_ItemResponse
+logger = logging.getLogger(__name__)
 
 # Keep uvicorn's INFO logs, but drop the repetitive liveness/model-discovery probes
 # that OpenCode and other local tools send to every localhost port.
@@ -76,29 +88,9 @@ async def analyze_anchor_image(file: UploadFile = File(...)):
 @app.post("/fetch_initial")
 async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest) -> FetchInitialResponse:
     keyword = request.keyword.replace(' ', '+')
-    catalog_id = VINTED_CATEGORY_MAP.get(request.selectedCategory, "")
-    colour_ids = []
-    for c_name in request.selectedColors.split(","):
-        if c_name in COLOUR_MAP.keys():
-            colour_ids.extend(COLOUR_MAP.get(c_name))
+    query_params = build_query_params(request)
 
-    query_params = f"search_text={keyword}"
-    if catalog_id:
-        query_params += f"&catalog[]={catalog_id}"
-    if colour_ids:
-        for c_id in colour_ids:
-            query_params += f"&color_ids[]={c_id}"
-    if request.selectedSizes:
-        for size_id in request.selectedSizes.split(","):
-            query_params += f"&size_ids[]={size_id}"
-    if request.maxPrice:
-        query_params += f"&price_to={request.maxPrice}&currency=GBP"
-    if request.selectedConditions:
-        for cid in request.selectedConditions.split(","):
-            if cid:
-                query_params += f"&status_ids[]={cid}"
-
-    print(f"\n[INFO] Constructed Query Parameters: {query_params}")
+    logger.info(f"\nConstructed Query Parameters: {query_params}")
     items: set[SearchItem] = scrape_vinted_pool(query_params)
 
     processed_items = process_and_rank_pool(items, request.uploadId)
@@ -129,14 +121,14 @@ def _apply_feedback_and_rerank(
 
     for event in events:
         insert_rerank_feedback(upload_id, event.item_url, event.feedback_type, event.concept)
-    print(f"[SUCCESS] Inserted {len(events)} feedback event(s) for upload {upload_id}")
+    logger.info(f"Inserted {len(events)} feedback event(s) for upload {upload_id}")
 
     new_items = 0
     if fetch_more:
         try:
             new_items = fetch_more_for_upload(upload_id)
         except Exception as e:
-            print(f"[WARN] Fetch-more failed for upload {upload_id}: {e}; ranking the existing pool")
+            logger.warning(f"Fetch-more failed for upload {upload_id}: {e}; ranking the existing pool")
 
     previous_results = get_results_by_upload_id(upload_id)
     feedback_history = get_feedback_for_upload(upload_id)
@@ -146,7 +138,7 @@ def _apply_feedback_and_rerank(
 
 @app.post("/rerank")
 async def rerank_pool(request: RerankRequest):
-    print(f"\n[INFO] Received rerank request: \nTYPE: {request.feedback_type} \nON: {request.concept} \n{request.item_url} \nUpload ID: {request.upload_id}")
+    logger.info(f"\nReceived rerank request: \nTYPE: {request.feedback_type} \nON: {request.concept} \n{request.item_url} \nUpload ID: {request.upload_id}")
     try:
         return _apply_feedback_and_rerank(
             request.upload_id,
@@ -165,7 +157,7 @@ async def rerank_pool(request: RerankRequest):
 
 @app.post("/rerank_batch")
 async def rerank_batch(request: BatchRerankRequest):
-    print(f"\n[INFO] Received batch rerank: {len(request.feedback)} event(s) for upload {request.upload_id}")
+    logger.info(f"\nReceived batch rerank: {len(request.feedback)} event(s) for upload {request.upload_id}")
     try:
         return _apply_feedback_and_rerank(request.upload_id, request.feedback, request.fetch_more)
     except Exception as e:
@@ -183,16 +175,16 @@ async def trait_profile(upload_id: int, item_url: Optional[str] = None) -> Trait
 
 @app.post("/compare")
 async def compare_items(request: ItemComparisonRequest) -> ItemComparisonResponse:
-    print(f"\n[INFO] Received item comparison request for item: {request.item_clicked_url} on upload ID: {request.upload_id}")
+    logger.info(f"\nReceived item comparison request for item: {request.item_clicked_url} on upload ID: {request.upload_id}")
     try:
         anchor_bytes = get_upload_bytes_by_id(request.upload_id)
-        print(f"\n[SUCCESS] Got embedding for upload ID {request.upload_id}")
+        logger.info(f"\nGot embedding for upload ID {request.upload_id}")
         
         clicked_bytes = fetch_image_bytes_from_url(request.item_clicked_url)
-        print(f"\n[SUCCESS] Got clicked item")
+        logger.info(f"\nGot clicked item")
 
         dynamic_chips = extract_relative_feedback_chips(anchor_bytes, clicked_bytes, top_k=3)
-        print(f"\n[SUCCESS] Extracted chips {request.upload_id}")
+        logger.info(f"\nExtracted chips {request.upload_id}")
 
         return ItemComparisonResponse(distinguishing_characteristics=dynamic_chips)
     except Exception as e:
