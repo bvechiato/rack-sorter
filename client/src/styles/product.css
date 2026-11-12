@@ -392,6 +392,11 @@
   min-height: 44px;
 }
 
+.trait-sheet-done:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 /* Desktop: same component as a centred dialog. */
 @media (min-width: 768px) {
   .trait-sheet {

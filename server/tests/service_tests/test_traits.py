@@ -95,9 +95,10 @@ def test_less_inverts_the_order():
     assert by_url["sleeved"].rerank_score > by_url["sleeveless"].rerank_score
 
 
-def test_clicked_item_equal_to_anchor_is_a_deadband_no_op():
+def test_neutral_click_is_applied_with_positive_direction():
+    # Anchor and clicked item both sit at s = 0. The old deadband dropped this tap;
+    # a neutral click must still steer (tie-break is the positive direction).
     items = _pool()
-    # Anchor and clicked item both sit at s = 0.
     anchor = np.array([0.0, 1.0])
     clicked = [item for item in items if item.url == "sleeved"][0]
     clicked.clip_embedding = [0.0, 1.0]
@@ -109,9 +110,9 @@ def test_clicked_item_equal_to_anchor_is_a_deadband_no_op():
         AXES,
     )
 
-    assert stats["skipped_deadband"] == 1
-    assert stats["applied"] == 0
-    assert all(item.rerank_score == 0.0 for item in items)
+    assert stats["applied"] == 1
+    by_url = {item.url: item for item in items}
+    assert by_url["sleeved"].rerank_score > by_url["sleeveless"].rerank_score
 
 
 def test_no_feedback_leaves_scores_untouched():

@@ -72,6 +72,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health
+         * @description Liveness probe; cheap and independent of the models/database.
+         */
+        get: operations["health_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rerank": {
         parameters: {
             query?: never;
@@ -83,6 +103,23 @@ export interface paths {
         put?: never;
         /** Rerank Pool */
         post: operations["rerank_pool_rerank_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rerank_batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rerank Batch */
+        post: operations["rerank_batch_rerank_batch_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -149,6 +186,18 @@ export interface components {
             /** Category Archetype */
             category_archetype: string;
         };
+        /** BatchRerankRequest */
+        BatchRerankRequest: {
+            /** Upload Id */
+            upload_id: number;
+            /** Feedback */
+            feedback: components["schemas"]["FeedbackEvent"][];
+            /**
+             * Fetch More
+             * @default true
+             */
+            fetch_more: boolean;
+        };
         /** Body_analyze_anchor_image_analyze_post */
         Body_analyze_anchor_image_analyze_post: {
             /**
@@ -156,6 +205,21 @@ export interface components {
              * Format: binary
              */
             file: string;
+        };
+        /**
+         * FeedbackEvent
+         * @description One queued trait/visual choice, sent when the sheet is dismissed with Done.
+         */
+        FeedbackEvent: {
+            /** Item Url */
+            item_url: string;
+            /**
+             * Feedback Type
+             * @enum {string}
+             */
+            feedback_type: "MORE" | "LESS";
+            /** Concept */
+            concept?: ("sleeves" | "neckline" | "length" | "pattern" | "fit" | "material") | null;
         };
         /** FetchInitialRequest */
         FetchInitialRequest: {
@@ -387,6 +451,28 @@ export interface operations {
             };
         };
     };
+    health_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
     rerank_pool_rerank_post: {
         parameters: {
             query?: never;
@@ -397,6 +483,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RerankRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rerank_batch_rerank_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchRerankRequest"];
             };
         };
         responses: {

@@ -43,6 +43,19 @@ class RerankRequest(BaseModel):
     # Pull one extra catalogue page before ranking; disable for offline/debug replays.
     fetch_more: bool = True
 
+class FeedbackEvent(BaseModel):
+    """One queued trait/visual choice, sent when the sheet is dismissed with Done."""
+    item_url: str
+    feedback_type: Literal["MORE", "LESS"]
+    concept: Optional[Trait] = None
+
+class BatchRerankRequest(BaseModel):
+    upload_id: int
+    # Applied as one unit: one extra page is fetched and one rerank is returned, so the
+    # client refreshes exactly once no matter how many traits were queued.
+    feedback: list[FeedbackEvent]
+    fetch_more: bool = True
+
 class ItemComparisonRequest(BaseModel):
     upload_id: int
     item_clicked_url: str

@@ -75,8 +75,8 @@ LESS  :  rerank_score_i -= w_less · d · z_i
 
 - `clicked_clip` comes from the stored candidate vector (the clicked item is in the pool).
 - `anchor_clip` is computed once per request from the uploaded image bytes.
-- If `|dot(clicked − anchor, axis)| < ε` the item does not differ from the anchor on that trait, so the
-  event is skipped (logged) rather than applied with an arbitrary sign.
+- If the clicked item is exactly neutral on the axis, the direction ties to the positive pole
+  (`delta >= 0`); the tap is still applied rather than dropped.
 - `mean_pool`/`std_pool` are computed over the *current* candidate pool for that axis, so one weight unit
   is one standard deviation, not one raw CLIP unit (see §5.2).
 
@@ -173,7 +173,6 @@ logged with its URL — no silent skip.
 |---|---|---|
 | `w_more` | `0.45` | raised from `0.35`: a tap must visibly reorder the top 10, not just nudge it |
 | `w_less` | `0.60` | asymmetric, as before: negative feedback should bite harder |
-| `ε` (direction deadband) | `0.02` | below this the clicked item is "the same" as the anchor on that trait |
 | `TRAIT_Z_LIMIT` | `3.0` | standardised projection is clipped to ±3σ so one outlier cannot dominate |
 | `MIN_TRAIT_SPREAD` | `1e-3` | below this the pool is flat on the axis; the event is skipped and counted |
 | per-item cap | `±0.8` summed across all trait events | raised with the weights; still keeps the DINO baseline relevant |
@@ -251,6 +250,16 @@ class RerankRequest(BaseModel):
     concept: Optional[Trait] = None      # now validated, not free text
     fetch_more: bool = True              # pull one extra catalogue page first
 
+class FeedbackEvent(BaseModel):
+    item_url: str
+    feedback_type: Literal["MORE", "LESS"]
+    concept: Optional[Trait] = None
+
+class BatchRerankRequest(BaseModel):
+    upload_id: int
+    feedback: list[FeedbackEvent]        # everything queued in the sheet
+    fetch_more: bool = True
+
 class FetchInitialResponse(BaseModel):
     pool: list[ItemResponse]
     new_items: int = 0                   # items appended by the last rerank's page
@@ -269,9 +278,11 @@ class TraitProfileResponse(BaseModel):
     item: Optional[dict[str, float]]     # clicked item, when it is in the pool
 ```
 
+`POST /rerank_batch` is the path the trait sheet uses: it persists every queued event, fetches one page,
+then reranks once. `POST /rerank` remains for a single immediate event (the card's More/Less buttons).
 `GET /trait-profile?upload_id=&item_url=` is read-only and replays the same ranking the grid is showing
-(§7.2). `fetch_more=false` exists so offline replays/tests can skip the scrape without changing the
-feedback path.
+(§7.2). `GET /health` is a cheap liveness probe. `fetch_more=false` exists so offline replays/tests can
+skip the scrape without changing the feedback path.
 
 - Rejecting unknown concepts at the edge prevents "sleeveless"/"flora" reaching the scorer again.
 - `rerank_score` is needed for the UI to show that ranking changed; `ProductCard` currently renders
@@ -302,8 +313,9 @@ grid apart and be unusable one-handed. Instead:
   `backdrop-filter: blur(2px)`, so the product images stay visible behind and the user keeps context;
 - on phones it presents as a bottom sheet (full width, rounded top, thumb-reachable, 44 px targets,
   safe-area padding); on desktop the same component is a centred dialog;
-- one trait interaction sends `{concept, feedback_type, item_url}`, then updates the sheet's state
-  in place so a user can queue several trait adjustments before dismissing;
+- tapping `+`/`−` only updates local state: the sheet queues several trait adjustments, and
+  **Done** sends them together as one `POST /rerank_batch` (one page fetch, one rerank, one grid
+  refresh). Closing without Done sends nothing;
 - the modal owns the "which item am I tuning" context (thumbnail + title in the sheet header), which
   the current inline chips do not show once the card scrolls.
 
@@ -318,8 +330,9 @@ each `+`/`−`, and `prefers-reduced-motion` skips the slide/scale.
 ### 7.1 Fetch more on every feedback (2026-11-12)
 
 A trait tap only reorders what is already in the pool, so feedback on a small pool converges quickly: the
-top 10 soon contains every item that fits the requested direction. Each `/rerank` therefore scrapes **one
-extra Vinted catalogue page** and merges it into the same `query_id` before scoring:
+top 10 soon contains every item that fits the requested direction. Every feedback request (the card's
+single `/rerank` or the sheet's `/rerank_batch`) therefore scrapes **one extra Vinted catalogue page**
+and merges it into the same `query_id` before scoring:
 
 - the stored `query_params` from `/fetch_initial` are reused with `&page=N`; an in-process cursor starts at
   `2` and advances per upload, capped at `MAX_PAGE=8`;
@@ -386,8 +399,7 @@ vectors so no model loads):
   encoder is injected);
 - an item aligned with the sleeves axis outranks an anti-aligned item after `MORE sleeves`;
 - `LESS sleeves` inverts that order;
-- a clicked item equal to the anchor on the trait (`|proj| < ε`) leaves order unchanged (stats record the
-  deadband skip);
+- a clicked item exactly on the anchor still applies, with the neutral direction tying to the positive pole;
 - rerank with no feedback leaves scores untouched;
 - switching polarity uses the last choice per `(item_url, concept)`;
 - the per-item cap clamps the folded total;
@@ -508,10 +520,10 @@ concurrency the codebase has no machinery for, so it was not implemented.
 |---|---|
 | Contradictory history | **Last-write-wins per `(item_url, concept)`** (§5), replacing "no dedupe". The client's `+`/`−` pair writes to an append-only log, so superseding is what the user means. |
 | Background warm-up | **Not implemented.** Vectors are written at ingest (§4.2), so a fresh search is already warm; the lazy pass only serves legacy rows (§9.1). |
-| Sheet after a tap | **Stays open** until dismissed, so several traits can be queued; the footer shows `Applying: …`. Choices are kept per item URL, so reopening the sheet reflects what is already applied and the card's trigger shows an active state. |
+| Sheet after a tap | **Queues locally.** `+`/`−` only change the sheet; tapping **Done** sends the whole selection in one batch (one fetch, one rerank, one refresh). Closing without Done sends nothing. Choices are kept per item URL, so reopening the sheet reflects what is already applied and the card's trigger shows an active state. |
 | Tapping the active `+`/`−` | **No clear.** The history is append-only, so the active button is inert and the opposite polarity is sent instead. This differs from `trait-sheet-mockup.html`, which still shows tap-to-clear; the mockup is kept as the visual reference only. |
 | Feedback strength | **Raised + standardised.** `w_more=0.45`, `w_less=0.60`, cap `0.8`, and raw projections are z-scored against the current pool (§5.2). Raw projections made the same tap ~10× weaker than intended and axis-dependent. |
-| Fetch on feedback | **Yes.** Every `/rerank` pulls one extra catalogue page before scoring (§7.1), merges unseen URLs, and reports `new_items`. Fail-soft: a blocked page never eats the feedback. |
+| Fetch on feedback | **Yes.** Every feedback request pulls one extra catalogue page before scoring (§7.1), merges unseen URLs, and reports `new_items`. Batching on Done means one fetch for the whole sheet. Fail-soft: a blocked page never eats the feedback. |
 | Visualising the axes | **Collapsible debug hexagon** in the sheet (§7.2), refetched after every feedback. Centre = −3σ, mean ring = pool mean, edge = +3σ. |
 
 

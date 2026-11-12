@@ -33,9 +33,6 @@ TRAIT_PROMPTS: Dict[str, tuple[str, str]] = {
 
 W_MORE = 0.45
 W_LESS = 0.60
-# Below this the clicked item is "the same" as the anchor on the trait, so the event
-# is skipped instead of being applied with an arbitrary sign.
-TRAIT_DEADBAND = 0.02
 # Candidate projections are standardised against the *current pool* before weighting:
 # CLIP axes have wildly different spreads (length std ≈ 0.04, pattern ≈ 0.08), so raw
 # projections made feedback ~10× weaker than intended and trait-dependent. One standard

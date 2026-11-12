@@ -129,8 +129,8 @@ function App() {
           profile={searchState.traitProfile}
           profileError={searchState.profileError}
           onClose={uiActions.closeTraitSheet}
-          onFeedback={(trait, direction) =>
-            searchActions.rerankProducts(imageState.uploadId, tunedItem.url, direction, trait)
+          onApply={(picks) =>
+            searchActions.applyTraitPicks(imageState.uploadId, tunedItem.url, picks)
           }
         />
       )}

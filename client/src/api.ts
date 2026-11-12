@@ -4,6 +4,7 @@ type AnalyseAnchorImageResponse = components['schemas']['AnalyseAnchorImageRespo
 type FetchInitialRequest = components['schemas']['FetchInitialRequest'];
 type FetchInitialResponse = components['schemas']['FetchInitialResponse'];
 type RerankRequest = components['schemas']['RerankRequest'];
+type BatchRerankRequest = components['schemas']['BatchRerankRequest'];
 type TraitProfileResponse = components['schemas']['TraitProfileResponse'];
 
 const API_HOST = window.location.origin;
@@ -39,6 +40,17 @@ export async function fetchInitial(data: FetchInitialRequest): Promise<FetchInit
 export async function rerank(data: RerankRequest): Promise<FetchInitialResponse> {
   // Same envelope as `/fetch_initial`, plus `new_items` for the extra page.
   const res = await fetch(`${API_HOST}/rerank`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return await handleResponse<FetchInitialResponse>(res);
+}
+
+export async function rerankBatch(data: BatchRerankRequest): Promise<FetchInitialResponse> {
+  // One request for every queued pick: the server fetches one page and reranks once,
+  // so the grid updates a single time.
+  const res = await fetch(`${API_HOST}/rerank_batch`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

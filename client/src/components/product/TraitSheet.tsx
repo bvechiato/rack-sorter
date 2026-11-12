@@ -9,8 +9,8 @@ type Direction = 'MORE' | 'LESS';
 
 interface TraitSheetProps {
   item: ItemResponse;
-  /** Fired for the item's tapped trait; the parent replays the whole history. */
-  onFeedback: (trait: Trait, direction: Direction) => Promise<void>;
+  /** Fired by Done with every queued trait; one request, one rerank. */
+  onApply: (picks: Partial<Record<Trait, Direction>>) => Promise<void>;
   /** Traits already applied to this item, so reopening the sheet reflects them. */
   appliedPicks?: Partial<Record<Trait, Direction>>;
   /** Items appended by the last feedback's extra catalogue page. */
@@ -23,17 +23,17 @@ interface TraitSheetProps {
 
 const TraitSheet: React.FC<TraitSheetProps> = ({
   item,
-  onFeedback,
+  onApply,
   appliedPicks,
   newItems = 0,
   profile,
   profileError,
   onClose,
 }) => {
-  // Last choice per trait, mirrored from what was sent. The history is append-only,
-  // so tapping the opposite polarity changes the stored intent rather than removing it.
+  // Last choice per trait, mirrored from what is already applied. Nothing is sent
+  // until Done: the sheet collects the whole selection first.
   const [picks, setPicks] = useState<Partial<Record<Trait, Direction>>>(appliedPicks ?? {});
-  const [busyTrait, setBusyTrait] = useState<Trait | null>(null);
+  const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAxes, setShowAxes] = useState(false);
   const sheetRef = useRef<HTMLElement>(null);
@@ -54,27 +54,31 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
     };
   }, [onClose]);
 
-  const pick = async (trait: Trait, direction: Direction) => {
-    if (busyTrait || picks[trait] === direction) return;
-
-    const previous = picks[trait];
+  const pick = (trait: Trait, direction: Direction) => {
+    if (applying || picks[trait] === direction) return;
     setPicks(prev => ({ ...prev, [trait]: direction }));
-    setBusyTrait(trait);
+    setError(null);
+  };
+
+  const apply = async () => {
+    if (applying) return;
+
+    const active = Object.entries(picks) as [Trait, Direction][];
+    if (!active.length) {
+      onClose();
+      return;
+    }
+
+    setApplying(true);
     setError(null);
     try {
-      await onFeedback(trait, direction);
+      await onApply(picks);
+      onClose();
     } catch (err: any) {
-      setError(err?.message || 'Could not apply that adjustment.');
-      // Restore the last applied choice, not just "nothing", since the server still
-      // holds it: a failed − after a successful + must not look like a cleared trait.
-      setPicks(prev => {
-        const next = { ...prev };
-        if (previous) next[trait] = previous;
-        else delete next[trait];
-        return next;
-      });
+      // Keep the sheet open so the user can retry; the local picks are unchanged.
+      setError(err?.message || 'Could not apply those adjustments.');
     } finally {
-      setBusyTrait(null);
+      setApplying(false);
     }
   };
 
@@ -123,7 +127,7 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
                     className={`tbtn plus ${picks[trait.key] === 'MORE' ? 'active' : ''}`}
                     aria-pressed={picks[trait.key] === 'MORE'}
                     aria-label={`More ${trait.label.toLowerCase()}`}
-                    disabled={busyTrait !== null}
+                    disabled={applying}
                     onClick={() => pick(trait.key, 'MORE')}
                   >
                     ＋
@@ -133,7 +137,7 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
                     className={`tbtn minus ${picks[trait.key] === 'LESS' ? 'active' : ''}`}
                     aria-pressed={picks[trait.key] === 'LESS'}
                     aria-label={`Less ${trait.label.toLowerCase()}`}
-                    disabled={busyTrait !== null}
+                    disabled={applying}
                     onClick={() => pick(trait.key, 'LESS')}
                   >
                     −
@@ -167,14 +171,14 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
           <div className="trait-sheet-status" role="status" aria-live="polite">
             {error ? (
               <span className="trait-sheet-error">{error}</span>
-            ) : busyTrait ? (
+            ) : applying ? (
               'Updating results…'
             ) : (
               <>
                 <div>
                   {active.length ? (
                     <>
-                      <b>Applying:</b>{' '}
+                      <b>Queued:</b>{' '}
                       {active
                         .map(([key, direction]) => `${direction === 'MORE' ? '+' : '−'} ${key}`)
                         .join(', ')}
@@ -191,7 +195,9 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
               </>
             )}
           </div>
-          <button className="trait-sheet-done" onClick={onClose}>Done</button>
+          <button className="trait-sheet-done" onClick={apply} disabled={applying}>
+            {applying ? 'Applying…' : 'Done'}
+          </button>
         </footer>
       </section>
     </div>

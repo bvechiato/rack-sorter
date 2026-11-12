@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from contextlib import asynccontextmanager
 from typing import Optional
+import logging
 import numpy as np
 
 from api.models import *
@@ -21,6 +22,17 @@ from service.eval_db import save_query_to_db, init, save_user_upload
 from service.repository import get_results_by_upload_id, get_upload_bytes_by_id
 from model.repository.feedback import insert_rerank_feedback, get_feedback_for_upload
 from model.mapper import to_ItemResponse
+
+# Keep uvicorn's INFO logs, but drop the repetitive liveness/model-discovery probes
+# that OpenCode and other local tools send to every localhost port.
+class _ProbeNoiseFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        return "/health" not in message and "/v1/models" not in message
+
+
+logging.getLogger("uvicorn.access").addFilter(_ProbeNoiseFilter())
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -95,27 +107,67 @@ async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest)
     reset_page_cursor(request.uploadId)
     return FetchInitialResponse(pool=to_ItemResponse(processed_items), new_items=len(processed_items))
 
+@app.get("/health")
+async def health() -> dict[str, str]:
+    """Liveness probe; cheap and independent of the models/database."""
+    return {"status": "ok"}
+
+
+def _apply_feedback_and_rerank(
+    upload_id: int,
+    events: list[FeedbackEvent],
+    fetch_more: bool,
+) -> FetchInitialResponse:
+    """Persist feedback, fetch one page, then rerank once.
+
+    Fetch happens *before* ranking so the single response already contains the new
+    candidates. A blocked page degrades to ranking the existing pool: the feedback is
+    already stored and must not be lost because Vinted refused one request.
+    """
+    if not events:
+        raise ValueError("feedback must contain at least one event")
+
+    for event in events:
+        insert_rerank_feedback(upload_id, event.item_url, event.feedback_type, event.concept)
+    print(f"[SUCCESS] Inserted {len(events)} feedback event(s) for upload {upload_id}")
+
+    new_items = 0
+    if fetch_more:
+        try:
+            new_items = fetch_more_for_upload(upload_id)
+        except Exception as e:
+            print(f"[WARN] Fetch-more failed for upload {upload_id}: {e}; ranking the existing pool")
+
+    previous_results = get_results_by_upload_id(upload_id)
+    feedback_history = get_feedback_for_upload(upload_id)
+    processed_items = rerank(previous_results, feedback_history, upload_id=upload_id)
+    return FetchInitialResponse(pool=to_ItemResponse(processed_items), new_items=new_items)
+
+
 @app.post("/rerank")
 async def rerank_pool(request: RerankRequest):
     print(f"\n[INFO] Received rerank request: \nTYPE: {request.feedback_type} \nON: {request.concept} \n{request.item_url} \nUpload ID: {request.upload_id}")
     try:
-        insert_rerank_feedback(request.upload_id, request.item_url, request.feedback_type, request.concept)
-        print(f"[SUCCESS] Inserted feedback")
+        return _apply_feedback_and_rerank(
+            request.upload_id,
+            [
+                FeedbackEvent(
+                    item_url=request.item_url,
+                    feedback_type=request.feedback_type,
+                    concept=request.concept,
+                )
+            ],
+            request.fetch_more,
+        )
+    except Exception as e:
+        return ServerError(message=f"Reranking crashed: {str(e)}")
 
-        # Pull one more catalogue page so feedback can promote unseen items. A scrape
-        # failure must not eat the feedback, so it degrades to ranking the current pool.
-        new_items = 0
-        if request.fetch_more:
-            try:
-                new_items = fetch_more_for_upload(request.upload_id)
-            except Exception as e:
-                print(f"[WARN] Fetch-more failed for upload {request.upload_id}: {e}")
 
-        previous_results = get_results_by_upload_id(request.upload_id)
-        feedback_history = get_feedback_for_upload(request.upload_id)
-
-        processed_items = rerank(previous_results, feedback_history, upload_id=request.upload_id)
-        return FetchInitialResponse(pool=to_ItemResponse(processed_items), new_items=new_items)
+@app.post("/rerank_batch")
+async def rerank_batch(request: BatchRerankRequest):
+    print(f"\n[INFO] Received batch rerank: {len(request.feedback)} event(s) for upload {request.upload_id}")
+    try:
+        return _apply_feedback_and_rerank(request.upload_id, request.feedback, request.fetch_more)
     except Exception as e:
         return ServerError(message=f"Reranking crashed: {str(e)}")
 

@@ -48,7 +48,6 @@ def apply_trait_modifiers(
         "events": len(trait_feedback),
         "superseded": 0,
         "applied": 0,
-        "skipped_deadband": 0,
         "skipped_degenerate": 0,
         "skipped_missing_vector": 0,
         "missing_vectors": 0,
@@ -98,15 +97,10 @@ def apply_trait_modifiers(
             continue
         _assert_same_space(clicked_clip, axis, fb.item_url)
 
-        # Direction of the *clicked* item on this trait, relative to the anchor.
+        # Direction of the *clicked* item on this trait, relative to the anchor. A
+        # neutral click (delta == 0) still counts: it is treated as the positive
+        # direction rather than dropped, so every tap has an effect.
         projection_delta = float(np.dot(clicked_clip - anchor_unit, axis))
-        if abs(projection_delta) < traits.TRAIT_DEADBAND:
-            print(
-                f"[INFO] Trait event skipped: '{key}' does not differ between clicked item "
-                f"and anchor (|{projection_delta:.4f}| < {traits.TRAIT_DEADBAND})"
-            )
-            stats["skipped_deadband"] += 1
-            continue
 
         if key in z_cache:
             z_scores = z_cache[key]
@@ -123,7 +117,7 @@ def apply_trait_modifiers(
             stats["skipped_degenerate"] += 1
             continue
 
-        direction = 1.0 if projection_delta > 0 else -1.0
+        direction = 1.0 if projection_delta >= 0 else -1.0
         weight = traits.W_MORE if fb.feedback_type == "MORE" else -traits.W_LESS
 
         for item in items:
@@ -168,7 +162,7 @@ def rerank(previous_results: Set[SearchItem], feedback_history: List[RerankFeedb
             stats = apply_trait_modifiers(items_with_base_scores, trait_fb, anchor_clip, axes)
             print(
                 f"[SUCCESS] Trait feedback applied: {stats['applied']}/{stats['events']} events, "
-                f"superseded={stats['superseded']}, deadband={stats['skipped_deadband']}, "
+                f"superseded={stats['superseded']}, "
                 f"degenerate={stats['skipped_degenerate']}, "
                 f"missing_clicked={stats['skipped_missing_vector']}, "
                 f"items_without_vector={stats['missing_vectors']}, clamped={stats['clamped']}"

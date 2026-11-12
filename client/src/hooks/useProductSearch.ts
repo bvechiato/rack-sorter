@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fetchInitial, fetchTraitProfile, rerank } from '../api';
+import { fetchInitial, fetchTraitProfile, rerank, rerankBatch } from '../api';
 import type { components } from '../types/api';
 import type { Trait } from '../static/constants';
 
@@ -99,7 +99,43 @@ export function useProductSearch() {
       // sheet's "updating" state covers it, but errors stay attached to the panel.
       await loadTraitProfile(uploadId, itemUrl);
     } catch (err) {
-      // Surface the backend reason; a generic message hides axis/deadband faults.
+      // Surface the backend reason; a generic message hides axis faults.
+      throw err instanceof Error ? err : new Error('Vector calculation error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Send every queued trait pick in one request. The server fetches one page before
+   * reranking, so the grid refreshes exactly once with the new candidates included.
+   */
+  const applyTraitPicks = async (uploadId: any, itemUrl: string, picks: TraitPicks) => {
+    if (!uploadId) {
+      throw new Error('Missing upload id');
+    }
+
+    const feedback = (Object.entries(picks) as [Trait, 'MORE' | 'LESS'][]).map(
+      ([concept, feedback_type]) => ({ item_url: itemUrl, feedback_type, concept }),
+    );
+    if (!feedback.length) return;
+
+    setLoading(true);
+    try {
+      const rankedData = await rerankBatch({
+        upload_id: uploadId,
+        feedback,
+        fetch_more: true,
+      });
+
+      setProducts(rankedData.pool || []);
+      setCurrentPool(rankedData.pool || []);
+      setNewItems(rankedData.new_items ?? 0);
+      // The sheet sends its full local selection, so replace rather than merge.
+      setTraitPicks(prev => ({ ...prev, [itemUrl]: picks }));
+
+      await loadTraitProfile(uploadId, itemUrl);
+    } catch (err) {
       throw err instanceof Error ? err : new Error('Vector calculation error');
     } finally {
       setLoading(false);
@@ -119,6 +155,7 @@ export function useProductSearch() {
     actions: {
       scrapeProducts,
       rerankProducts,
+      applyTraitPicks,
       loadTraitProfile,
     },
   };
