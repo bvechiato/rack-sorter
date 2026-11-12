@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import os
 from contextlib import asynccontextmanager
+from typing import Optional
 import numpy as np
 
 from api.models import *
@@ -12,6 +13,8 @@ from model.repository.search_items import SearchItem
 from service.scraper import scrape_vinted_pool
 from service.rerank import rerank
 from service.rank import process_and_rank_pool, fetch_image_bytes_from_url
+from service.pool import fetch_more_for_upload, reset_page_cursor
+from service.profile import build_trait_profile
 from service.identifier import extract_tags_from_image, extract_relative_feedback_chips
 from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
 from service.eval_db import save_query_to_db, init, save_user_upload
@@ -89,7 +92,8 @@ async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest)
     processed_items = process_and_rank_pool(items, request.uploadId)
 
     bg_tasks.add_task(save_query_to_db, request.uploadId, keyword, query_params, processed_items)
-    return FetchInitialResponse(pool=to_ItemResponse(processed_items))
+    reset_page_cursor(request.uploadId)
+    return FetchInitialResponse(pool=to_ItemResponse(processed_items), new_items=len(processed_items))
 
 @app.post("/rerank")
 async def rerank_pool(request: RerankRequest):
@@ -97,14 +101,32 @@ async def rerank_pool(request: RerankRequest):
     try:
         insert_rerank_feedback(request.upload_id, request.item_url, request.feedback_type, request.concept)
         print(f"[SUCCESS] Inserted feedback")
-        
+
+        # Pull one more catalogue page so feedback can promote unseen items. A scrape
+        # failure must not eat the feedback, so it degrades to ranking the current pool.
+        new_items = 0
+        if request.fetch_more:
+            try:
+                new_items = fetch_more_for_upload(request.upload_id)
+            except Exception as e:
+                print(f"[WARN] Fetch-more failed for upload {request.upload_id}: {e}")
+
         previous_results = get_results_by_upload_id(request.upload_id)
         feedback_history = get_feedback_for_upload(request.upload_id)
 
         processed_items = rerank(previous_results, feedback_history, upload_id=request.upload_id)
-        return FetchInitialResponse(pool=to_ItemResponse(processed_items))
+        return FetchInitialResponse(pool=to_ItemResponse(processed_items), new_items=new_items)
     except Exception as e:
         return ServerError(message=f"Reranking crashed: {str(e)}")
+
+
+@app.get("/trait-profile")
+async def trait_profile(upload_id: int, item_url: Optional[str] = None) -> TraitProfileResponse:
+    """Debug view: where the anchor and the current top results sit on every trait axis."""
+    try:
+        return TraitProfileResponse(**build_trait_profile(upload_id, item_url))
+    except Exception as e:
+        return ServerError(message=f"Trait profile failed: {str(e)}")
 
 
 @app.post("/compare")

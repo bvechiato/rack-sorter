@@ -45,166 +45,7 @@
 }
 .product-info { padding: 10px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
 .product-title { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-weight: 500; }
-.product-score { color: var(--accent); font-size: 11px; font-weight: bold; }
 
-
-/* PRIMARY */
-/* The Toolbar Container */
-.product-action-bar {
-  display: flex;
-  background: #161616; /* Deep dark base that matches the card */
-  border: 1px solid #262626; /* Subtle framing border */
-  border-radius: 10px;
-  margin-top: 14px;
-  overflow: hidden; /* Ensures the corner radiuses clip perfectly */
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Base style for all 3 segments */
-.action-bar-btn {
-  flex: 1; /* FORCES EXACTLY EQUAL WIDTHS across all three buttons */
-  height: 38px;
-  background: transparent;
-  border: none;
-  color: #dddddd;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-/* Add elegant dividers between the segments */
-.action-bar-btn:not(:last-child) {
-  border-right: 1px solid #262626;
-}
-
-/* Hover effects: Sleek and highly unified */
-.action-bar-btn:hover {
-  background: #222222;
-  color: #ffffff;
-}
-
-/* Light up the text with your brand cyan when it's an available action */
-.action-bar-btn.compare-trigger {
-  color: #64dfdf;
-}
-
-/* Contextual color hints when hovering over specific feedback paths */
-.action-bar-btn[title="More Like This"]:hover {
-  background: rgba(100, 223, 223, 0.08);
-}
-.action-bar-btn[title="Less Like This"]:hover {
-  background: rgba(255, 90, 95, 0.08);
-}
-
-/* When active/compared, it stays beautifully integrated instead of turning into a dead eyesore */
-.action-bar-btn.compare-trigger.active {
-  background: rgba(100, 223, 223, 0.1);
-  color: #64dfdf;
-  cursor: default;
-}
-
-/* Scale down the emoji size slightly so they don't crowd the buttons */
-.btn-icon {
-  font-size: 0.9rem;
-  opacity: 0.85;
-}
-
-/* Clean spacing adjustments for the traits module directly below it */
-.trait-refinement-container {
-  margin-top: 16px;
-  border-top: 1px solid #222222;
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-}
-
-/* SECONDARY ROW */
-/* Outer box container below buttons */
-.trait-refinement-container {
-  margin-top: 14px;
-  border-top: 1px solid #1e1e1e;
-  padding-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-.trait-heading {
-  font-size: 0.72rem;
-  color: #888;
-  font-weight: 500;
-  text-align: left;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-/* Flex wrapper holding the individual pills */
-.trait-pills-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 6px;
-}
-
-/* The parent multi-segmented pill bubble */
-.trait-split-pill {
-  display: inline-flex;
-  align-items: center;
-  background: #222222;
-  border: 1px solid #333333;
-  border-radius: 16px;
-  overflow: hidden;
-  height: 26px;
-}
-
-/* Left Label: Shows the name of the feature */
-.trait-name {
-  font-size: 0.72rem;
-  color: #ffffff;
-  padding: 0 10px;
-  font-weight: 500;
-  border-right: 1px solid #333333;
-  user-select: none;
-}
-
-/* Right Actions: Interactive control toggles */
-.trait-action-btn {
-  background: transparent;
-  border: none;
-  color: #aaaaaa;
-  font-size: 0.75rem;
-  width: 24px;
-  height: 100%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-/* Divider lines inside action compartments */
-.trait-action-btn.boost {
-  border-right: 1px solid #333333;
-}
-
-/* Interactive feedback indicators matching response weight */
-.trait-action-btn.boost:hover {
-  background: #64dfdf;
-  color: #000000;
-}
-
-.trait-action-btn.bury:hover {
-  background: #ff5a5f;
-  color: #ffffff;
-}
 
 /* PRODUCT CARD */
 .product-card {
@@ -265,8 +106,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 600;
+  color: inherit;
+  padding: 0;
   cursor: pointer;
   user-select: none;
   transition: background 0.15s, border-color 0.15s;
@@ -290,7 +134,7 @@
 
 /* Custom Stateful Modifier Classes for the Style Toggle Trigger Button */
 .tune-style-trigger {
-  grid-column: 'span 2';
+  grid-column: span 2;
   background: #1c1c21;
   border: 1px solid #2e2e38;
   border-radius: 6px;
@@ -298,13 +142,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   color: #a1a1aa;
+  padding: 0;
   user-select: none;
   cursor: pointer;
-  grid-column: span 2;
   transition: all 0.2s ease;
+}
+
+/* Keyboard focus must stay visible now that the actions are real buttons. */
+.action-btn:focus-visible,
+.tune-style-trigger:focus-visible,
+.tbtn:focus-visible,
+.trait-sheet-close:focus-visible,
+.trait-sheet-done:focus-visible {
+  outline: 2px solid var(--accent, #00e5ff);
+  outline-offset: 2px;
 }
 
 .tune-style-trigger:hover {
@@ -324,110 +179,418 @@
   opacity: 0.7;
 }
 
-/* TRAITS */
 /* ==========================================================================
-   TRAIT CAROUSEL RIBBON & STACKED MICRO-WIDGETS
+   TRAIT SHEET — fixed vocabulary, one modal per tuned item
+   Mobile: bottom sheet. ≥768px: centred dialog. Scrim stays translucent so the
+   product grid remains readable behind it.
    ========================================================================== */
-.trait-carousel-container {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid #232329;
+.trait-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+
+.trait-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.trait-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  max-height: 72%;
+  background: var(--surface, #161616);
+  border-top: 1px solid var(--border, #2a2a2a);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.55);
+  padding: 8px 14px calc(14px + env(safe-area-inset-bottom));
+  outline: none;
+  animation: trait-sheet-up 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.trait-carousel-heading {
-  font-size: 10px;
-  color: #a1a1aa; /* High contrast reading levels */
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  padding-left: 2px;
+@keyframes trait-sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
 }
 
-.trait-carousel-track {
+.trait-sheet-grabber {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: #3a3a3a;
+  margin: 2px auto 8px;
+  flex: 0 0 auto;
+}
+
+.trait-sheet-scroll {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.trait-sheet-head {
   display: flex;
-  flex-direction: row;
-  overflow-x: auto;                      /* Enables horizontal scrolling */
-  scroll-snap-type: x proximity;         /* Clean snapping alignments */
-  -webkit-overflow-scrolling: touch;     /* Momentum swipe scrolling for iOS mobile devices */
-  gap: 8px;
-  padding: 4px 2px 6px 2px;
-  scrollbar-width: none;                 /* Modern browser scrollbar hiding */
+  gap: 11px;
+  align-items: center;
+  padding: 0 2px 10px;
+  border-bottom: 1px solid var(--border, #2a2a2a);
 }
 
-.trait-carousel-track::-webkit-scrollbar {
-  display: none;                         /* Safari/Chrome scrollbar removal */
-}
-
-/* ==========================================================================
-   THE MICRO-WIDGET CARD (STACKED SYSTEM)
-   ========================================================================== */
-.trait-widget-card {
-  display: flex;
-  flex-direction: column;
-  background: #1c1c21;
-  border: 1px solid #2e2e38;
+.trait-sheet-thumb {
+  width: 46px;
+  height: 58px;
   border-radius: 8px;
-  
-  /* ⚡ FIXED: Expanded width to give the split buttons more horizontal runway */
-  min-width: 110px;                       
-  max-width: 140px;
-  flex-shrink: 0;
-  scroll-snap-align: start;
-  overflow: hidden;
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: #1f1f1f;
 }
 
-/* Top half layout frame */
-.trait-widget-title {
-  font-size: 11px;
-  color: #e4e4e7;
-  font-weight: 600;
-  text-align: center;
-  padding: 8px 6px;
-  border-bottom: 1px solid #2e2e38;     /* The horizontal divider rule line */
+.trait-sheet-heading { min-width: 0; }
+
+.trait-sheet-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #fff);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: rgba(255, 255, 255, 0.01);
 }
 
-/* Bottom half action bar layout grid */
-.trait-widget-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;        /* Splits the row into 2 equal halves */
-  
-  /* ⚡ FIXED: Boosted target height to 46px to satisfy mobile thumb precision */
-  height: 46px;                          
+.trait-sheet-meta {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  margin-top: 3px;
 }
 
-.trait-widget-btn {
+.trait-sheet-close {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted, #888);
+  font-size: 18px;
+  line-height: 1;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.trait-sheet-caption {
+  color: var(--text-muted, #888);
+  font-size: 11px;
+  margin: 8px 2px 2px;
+}
+
+.trait-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  
-  /* ⚡ FIXED: Increased symbol scale for absolute visibility */
-  font-size: 15px;                       
-  font-weight: bold;
+  gap: 10px;
+  padding: 2px;
+  min-height: 52px;
+  border-bottom: 1px solid #1e1e1e;
+}
+
+.trait-row:last-child { border-bottom: 0; }
+
+.trait-row-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #fff);
+}
+
+.trait-row-tag {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffb020;
+  border: 1px solid rgba(255, 176, 32, 0.25);
+  background: rgba(255, 176, 32, 0.07);
+  padding: 2px 5px;
+  border-radius: 4px;
+  vertical-align: 1px;
+}
+
+.trait-pair {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* 44px minimum target on phones, per the design doc. */
+.tbtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  border: 1px solid var(--border, #2a2a2a);
+  background: #1b1b1b;
+  color: #ccc;
+  font-size: 17px;
+  font-weight: 700;
   cursor: pointer;
-  user-select: none;
-  transition: background 0.1s;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-/* Left action divider segment setup */
-.widget-btn-more {
-  color: #4ade80;
-  border-right: 1px solid #2e2e38;      /* The vertical divider separating buttons */
-}
-.widget-btn-more:active {
-  background: rgba(74, 222, 128, 0.15); /* Slightly darker feedback highlight on press */
+.tbtn:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
-/* Right action segment setup */
-.widget-btn-less {
-  color: #f87171;
+.tbtn.plus:hover { border-color: #2f6f7a; color: #d8fbff; }
+.tbtn.minus:hover { border-color: #7a2f3a; color: #ffd8de; }
+
+.tbtn.active.plus {
+  background: var(--accent-dim, rgba(0, 229, 255, 0.12));
+  border-color: var(--accent, #00e5ff);
+  color: var(--accent, #00e5ff);
 }
-.widget-btn-less:active {
-  background: rgba(248, 113, 113, 0.15);
+
+.tbtn.active.minus {
+  background: rgba(255, 45, 85, 0.1);
+  border-color: #ff2d55;
+  color: #ff7089;
+}
+
+.trait-sheet-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding-top: 12px;
+  margin-top: 6px;
+  border-top: 1px solid var(--border, #2a2a2a);
+}
+
+.trait-sheet-status {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  min-height: 15px;
+}
+
+.trait-sheet-status b { color: var(--text, #fff); font-weight: 600; }
+.trait-sheet-error { color: #ff7089; }
+
+.trait-sheet-done {
+  background: var(--accent, #00e5ff);
+  color: #001014;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 20px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+/* Desktop: same component as a centred dialog. */
+@media (min-width: 768px) {
+  .trait-sheet {
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    top: 50%;
+    width: 430px;
+    max-height: 80%;
+    transform: translate(-50%, -50%);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 16px;
+    padding: 10px 18px 18px;
+    animation: trait-sheet-pop 0.2s ease;
+  }
+
+  @keyframes trait-sheet-pop {
+    from { transform: translate(-50%, -50%) scale(0.97); opacity: 0; }
+    to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  }
+
+  .trait-sheet-grabber { display: none; }
+  .tbtn { width: 38px; height: 38px; border-radius: 9px; font-size: 15px; }
+  .trait-sheet-head { padding-top: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trait-sheet { animation: none; }
+}
+
+/* ==========================================================================
+   ACTION LOCK — one rerank at a time, so taps cannot queue behind each other
+   ========================================================================== */
+.action-btn:disabled,
+.tune-style-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.action-btn:disabled:hover {
+  background: #1c1c21;
+  border-color: #2e2e38;
+}
+
+/* ==========================================================================
+   TRAIT AXES — debug view of the scorer's z-space
+   Centre = −3σ, dashed mean ring = pool mean, edge = +3σ.
+   ========================================================================== */
+.trait-axes-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px dashed #2e2e38;
+  border-radius: 8px;
+  color: var(--text-muted, #888);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.trait-axes-toggle:hover {
+  border-color: #3f3f46;
+  color: #e4e4e7;
+}
+
+.trait-axes-toggle:focus-visible {
+  outline: 2px solid var(--accent, #00e5ff);
+  outline-offset: 2px;
+}
+
+.trait-axes-debug {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #ffb020;
+  border: 1px solid rgba(255, 176, 32, 0.25);
+  background: rgba(255, 176, 32, 0.07);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.trait-axes-error,
+.trait-axes-empty {
+  margin: 10px 2px 2px;
+  font-size: 11px;
+  color: var(--text-muted, #888);
+}
+
+.trait-axes-error { color: #ff7089; }
+
+.trait-radar {
+  margin: 4px 0 0;
+}
+
+.trait-radar svg {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.trait-radar-grid {
+  fill: none;
+  stroke: #2e2e38;
+  stroke-width: 1;
+}
+
+.trait-radar-mean {
+  fill: none;
+  stroke: #3a3a44;
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.trait-radar-spoke {
+  stroke: #232329;
+  stroke-width: 1;
+}
+
+.trait-radar-label {
+  fill: #a1a1aa;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.trait-radar-anchor {
+  fill: rgba(161, 161, 170, 0.07);
+  stroke: #a1a1aa;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.trait-radar-top {
+  fill: rgba(0, 229, 255, 0.16);
+  stroke: #00e5ff;
+  stroke-width: 1.5;
+}
+
+.trait-radar-item {
+  fill: rgba(255, 176, 32, 0.1);
+  stroke: #ffb020;
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.trait-radar-dot {
+  fill: #ffb020;
+  stroke: #161616;
+  stroke-width: 1;
+}
+
+.trait-radar-origin {
+  fill: #52525b;
+}
+
+.trait-radar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-muted, #888);
+}
+
+.trait-radar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.trait-radar-legend .swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.swatch-top { background: rgba(0, 229, 255, 0.5); border: 1px solid #00e5ff; }
+.swatch-anchor { border: 1px dashed #a1a1aa; }
+.swatch-item { background: rgba(255, 176, 32, 0.5); border: 1px solid #ffb020; }
+
+.trait-radar-hint {
+  flex-basis: 100%;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.trait-sheet-new {
+  color: var(--accent, #00e5ff);
+  font-weight: 600;
 }

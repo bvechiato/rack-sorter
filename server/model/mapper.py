@@ -8,13 +8,15 @@ def to_ItemResponse(items) -> list[ItemResponse]:
             url = item.get("url", "")
             image_url = item.get("image_url", "") or ""
             similarity_score = item.get("similarity_score", item.get("rerank_score", 0.0))
+            rerank_score = item.get("rerank_score")
         else:
             title = getattr(item, "title", "")
             url = getattr(item, "url", "")
             image_url = getattr(item, "image_url", "") or ""
             similarity_score = getattr(item, "similarity_score", None)
+            rerank_score = getattr(item, "rerank_score", None)
             if similarity_score is None:
-                similarity_score = getattr(item, "rerank_score", 0.0)
+                similarity_score = rerank_score
 
         serialized.append(
             ItemResponse(
@@ -22,6 +24,7 @@ def to_ItemResponse(items) -> list[ItemResponse]:
                 url=url,
                 image_url=image_url,
                 similarity_score=float(similarity_score or 0.0),
+                rerank_score=float(rerank_score) if rerank_score is not None else None,
             )
         )
     return serialized

@@ -16,7 +16,12 @@ def get_query_by_upload_id(upload_id: int) -> QueryDTO:
     conn = sqlite3.connect(constants.DB)
     cursor = conn.cursor()
     
-    cursor.execute("SELECT id, search_keyword, query_params FROM queries WHERE upload_id = ?", (upload_id,))
+    # `timestamp` has 1 second resolution, so order by the autoincrement id instead:
+    # a single upload can legitimately produce several queries (repeated searches).
+    cursor.execute(
+        "SELECT id, search_keyword, query_params FROM queries WHERE upload_id = ? ORDER BY id DESC LIMIT 1",
+        (upload_id,),
+    )
     result = cursor.fetchone()
     conn.close()
     

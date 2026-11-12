@@ -64,3 +64,77 @@ def test_insert_search_items_records(monkeypatch):
     mod.insert_search_items(5, items)
     assert 'data' in recorded
     assert len(recorded['data']) == 2
+
+
+def test_insert_search_items_stores_clip_embedding_blob(monkeypatch):
+    recorded = {}
+
+    class FakeConn:
+        def cursor(self):
+            return self
+
+        def executemany(self, sql, data):
+            recorded['sql'] = sql
+            recorded['data'] = data
+
+        def commit(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(mod, "sqlite3", type("S", (), {"connect": lambda db: FakeConn()}))
+    item = SearchItem(title="t", url="u", clip_embedding=[0.5] * 512, embedding=[0.1] * 768)
+    mod.insert_search_items(5, [item])
+
+    row = recorded['data'][0]
+    assert 'clip_embedding' in recorded['sql']
+    assert len(row) == 7
+    assert len(row[6]) == 512 * 4  # float32 blob
+
+    # The vector stays out of the JSON blob so stored payloads do not double up.
+    assert 'clip_embedding' not in json.loads(row[4])
+
+
+def test_get_items_by_query_id_hydrates_clip_embedding(monkeypatch):
+    import numpy as np
+
+    clip_blob = np.asarray([0.25] * 512, dtype=np.float32).tobytes()
+
+    class FakeConn:
+        def cursor(self):
+            return self
+
+        def execute(self, *args, **kwargs):
+            pass
+
+        def fetchall(self):
+            return [("t", "u", "i", json.dumps({"title": "t", "url": "u"}), None, clip_blob)]
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(mod, "sqlite3", type("S", (), {"connect": lambda db: FakeConn()}))
+    items = mod.get_items_by_query_id(1)
+
+    assert items[0].embedding is None
+    assert len(items[0].clip_embedding) == 512
+    assert items[0].clip_embedding[0] == 0.25
+
+
+def test_get_item_urls_for_query(monkeypatch):
+    class FakeConn:
+        def cursor(self):
+            return self
+
+        def execute(self, *args, **kwargs):
+            pass
+
+        def fetchall(self):
+            return [("https://a",), ("https://b",), (None,)]
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(mod, "sqlite3", type("S", (), {"connect": lambda db: FakeConn()}))
+    assert mod.get_item_urls_for_query(3) == {"https://a", "https://b"}

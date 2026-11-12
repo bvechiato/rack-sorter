@@ -28,7 +28,7 @@ def get_feedback_for_upload(upload_id: int) -> list[RerankFeedback]:
         SELECT item_url, feedback_type, concept
         FROM rerank_feedback
         WHERE upload_id = ?
-        ORDER BY timestamp ASC
+        ORDER BY id ASC
     """, (upload_id,))
 
     rows = cursor.fetchall()

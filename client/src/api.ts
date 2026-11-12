@@ -3,6 +3,8 @@ import { components } from './types/api';
 type AnalyseAnchorImageResponse = components['schemas']['AnalyseAnchorImageResponse'];
 type FetchInitialRequest = components['schemas']['FetchInitialRequest'];
 type FetchInitialResponse = components['schemas']['FetchInitialResponse'];
+type RerankRequest = components['schemas']['RerankRequest'];
+type TraitProfileResponse = components['schemas']['TraitProfileResponse'];
 
 const API_HOST = window.location.origin;
 
@@ -34,25 +36,22 @@ export async function fetchInitial(data: FetchInitialRequest): Promise<FetchInit
   return await handleResponse<FetchInitialResponse>(res);
 }
 
-export async function rerank(data: {
-  upload_id: number;
-  item_url: string;
-  feedback_type: string;
-  concept?: string;
-}) {
-  const response = await fetch('/rerank', {
+export async function rerank(data: RerankRequest): Promise<FetchInitialResponse> {
+  // Same envelope as `/fetch_initial`, plus `new_items` for the extra page.
+  const res = await fetch(`${API_HOST}/rerank`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
+  return await handleResponse<FetchInitialResponse>(res);
+}
 
-  if (!response.ok) {
-    throw new Error('Rerank failed');
-  }
+export async function fetchTraitProfile(uploadId: number, itemUrl?: string): Promise<TraitProfileResponse> {
+  const params = new URLSearchParams({ upload_id: String(uploadId) });
+  if (itemUrl) params.set('item_url', itemUrl);
 
-  return response.json();
+  const res = await fetch(`${API_HOST}/trait-profile?${params.toString()}`);
+  return await handleResponse<TraitProfileResponse>(res);
 }
 
 type ItemComparisonRequest = components['schemas']['ItemComparisonRequest'];

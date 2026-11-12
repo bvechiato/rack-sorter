@@ -7,33 +7,15 @@ type ItemResponse = components['schemas']['ItemResponse'];
 
 interface ProductGridProps {
   products: ItemResponse[];
-  onFeedback: (itemUrl: string, feedbackType: 'MORE' | 'LESS', concept?: string) => Promise<void>;
-  onCompare: (itemUrl: string) => Promise<void>;
-  comparisonCharacteristics?: Record<string, string[]>;
-  comparisonLoadingMap?: Record<string, boolean>;
+  onFeedback: (itemUrl: string, feedbackType: 'MORE' | 'LESS') => Promise<void>;
+  onTune: (itemUrl: string) => void;
+  tunedUrls?: Record<string, unknown>;
+  /** A rerank is in flight; card actions stay disabled until it settles. */
+  disabled?: boolean;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({
-  products,
-  onFeedback,
-  onCompare,
-  comparisonCharacteristics = {},
-  comparisonLoadingMap = {},
-}) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ products, onFeedback, onTune, tunedUrls = {}, disabled }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleFeedbackAndScroll = async (
-    itemUrl: string,
-    feedbackType: 'MORE' | 'LESS',
-    concept?: string
-  ) => {
-    const feedbackPromise = onFeedback(itemUrl, feedbackType, concept);
-    containerRef.current?.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'start' 
-    });
-    await feedbackPromise;
-  };
 
   if (!products || products.length === 0) {
     return (
@@ -62,12 +44,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       >
         {products.map((item, index) => (
           <ProductCard
-            key={index}
+            key={item.url || index}
             item={item}
-            onFeedback={handleFeedbackAndScroll}
-            onCompare={onCompare}
-            characteristics={comparisonCharacteristics[item.image_url]}
-            isLoading={comparisonLoadingMap[item.image_url]}
+            onFeedback={(itemUrl, feedbackType) => onFeedback(itemUrl, feedbackType)}
+            onTune={onTune}
+            isTuned={Boolean(tunedUrls[item.url])}
+            disabled={disabled}
           />
         ))}
       </Masonry>

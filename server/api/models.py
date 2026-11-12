@@ -1,5 +1,7 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
+
+from service.traits import Trait
 
 class FetchInitialRequest(BaseModel):
     uploadId: int
@@ -15,9 +17,12 @@ class ItemResponse(BaseModel):
     url: str
     image_url: str
     similarity_score: float
+    rerank_score: Optional[float] = None
 
 class FetchInitialResponse(BaseModel):
     pool: list[ItemResponse]
+    # Items appended by the last rerank's extra catalogue page (0 on a fresh search).
+    new_items: int = 0
 
 class AnalyseResponse(BaseModel):
     archetype: str
@@ -33,8 +38,10 @@ class AnalyseAnchorImageResponse(BaseModel):
 class RerankRequest(BaseModel):
     upload_id: int
     item_url: str
-    feedback_type: str
-    concept: Optional[str] = None
+    feedback_type: Literal["MORE", "LESS"]
+    concept: Optional[Trait] = None
+    # Pull one extra catalogue page before ranking; disable for offline/debug replays.
+    fetch_more: bool = True
 
 class ItemComparisonRequest(BaseModel):
     upload_id: int
@@ -42,3 +49,15 @@ class ItemComparisonRequest(BaseModel):
 
 class ItemComparisonResponse(BaseModel):
     distinguishing_characteristics: list[str]
+
+
+class TraitProfileResponse(BaseModel):
+    """Raw axis projections plus the pool spread the scorer standardises against."""
+
+    count: int
+    top_n: int
+    mean: dict[str, float]
+    std: dict[str, float]
+    anchor: dict[str, float]
+    top: dict[str, float]
+    item: Optional[dict[str, float]] = None

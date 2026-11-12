@@ -8,6 +8,7 @@ class SearchItem:
     url: str
     image_url: Optional[str] = None
     embedding: Optional[List[float]] = None
+    clip_embedding: Optional[List[float]] = None
     similarity_score: Optional[float] = None
     rerank_score: Optional[float] = None
     data: Dict[str, Any] = field(default_factory=dict)
@@ -18,8 +19,20 @@ class SearchItem:
         url = d.get("url")
         image_url = d.get("image_url")
         embedding = d.get("embedding")
-        data = {k: v for k, v in d.items() if k not in {"title", "url", "image_url", "embedding"}}
-        return SearchItem(title=title, url=url, image_url=image_url, embedding=embedding, data=data)
+        clip_embedding = d.get("clip_embedding")
+        data = {
+            k: v
+            for k, v in d.items()
+            if k not in {"title", "url", "image_url", "embedding", "clip_embedding"}
+        }
+        return SearchItem(
+            title=title,
+            url=url,
+            image_url=image_url,
+            embedding=embedding,
+            clip_embedding=clip_embedding,
+            data=data,
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         base = {"title": self.title, "url": self.url}
@@ -41,7 +54,7 @@ class SearchItem:
 class RerankFeedback:
     item_url: str
     feedback_type: str
-    concept: str
+    concept: Optional[str] = None
 
     @staticmethod
     def from_row(row: Tuple) -> "RerankFeedback":

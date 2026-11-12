@@ -6,7 +6,7 @@ from dtos import SearchItem
 
 def scrape_vinted_pool(query_params: str) -> set[SearchItem]:
     """Hits the public Vinted catalog endpoint with exact profile constraints."""
-    url = f"https://www.vinted.co.uk/catalog?&{query_params}&order=newest_first"
+    url = f"https://www.vinted.co.uk/catalog?&{query_params}"
 
     print(f"\n[INFO] Target Scraping URL Generated: {url}\n")
 

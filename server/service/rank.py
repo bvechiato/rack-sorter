@@ -1,5 +1,6 @@
 import io
 import torch
+import numpy as np
 from PIL import Image
 import cloudscraper
 from sklearn.metrics.pairwise import cosine_similarity
@@ -7,6 +8,7 @@ from transformers import AutoImageProcessor, AutoModel
 from dtos import SearchItem
 from .repository import get_upload_bytes_by_id
 from model.repository.user_uploads import get_embedding_by_upload_id, insert_embedding_for_upload
+from service.identifier import get_single_clip_embedding
 
 MODEL_ID = "facebook/dinov2-base"
 processor = AutoImageProcessor.from_pretrained(MODEL_ID)
@@ -16,10 +18,19 @@ print("[SUCCESS] Initialised local DINOv2 for vector extraction")
 def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> list[SearchItem]:  
     try:
         anchor_features = get_embedding_by_upload_id(upload_id)
+        if anchor_features is None:
+            raise ValueError("missing anchor embedding")
     except Exception as e:
         anchor_bytes = get_upload_bytes_by_id(upload_id) 
         anchor_features = process_and_normalise(anchor_bytes)
         insert_embedding_for_upload(upload_id, anchor_features.squeeze().numpy().tolist())
+
+    # `get_embedding_by_upload_id` returns a plain list; the freshly-computed path
+    # returns a tensor. Normalise once so the second fetch-more page on an upload
+    # does not die with "'list' object has no attribute 'numpy'".
+    anchor_array = (
+        anchor_features.numpy() if hasattr(anchor_features, "numpy") else np.asarray(anchor_features, dtype=float)
+    ).reshape(1, -1)
 
     ranked_pool = set()
     for item in scraped_items:
@@ -33,7 +44,7 @@ def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> lis
                 
             # Compute pure spatial similarity matrix
             similarity = cosine_similarity(
-                anchor_features.numpy(), 
+                anchor_array, 
                 scraped_item_features.numpy()
             )[0][0]
 
@@ -44,6 +55,14 @@ def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> lis
                     .numpy()
                     .tolist()
             )
+
+            # FashionCLIP vector for trait steering: computed here because the image
+            # bytes are already in memory, so the feedback path never re-downloads.
+            try:
+                item.clip_embedding = get_single_clip_embedding(image).tolist()
+            except Exception as e:
+                print(f"[WARN] CLIP embedding failed for {item.url}: {e}")
+
             ranked_pool.add(item)  
         except Exception as e:
             print(f"[WARN] Skipping item due to error: {e}")

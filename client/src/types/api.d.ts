@@ -89,6 +89,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/trait-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Trait Profile
+         * @description Debug view: where the anchor and the current top results sit on every trait axis.
+         */
+        get: operations["trait_profile_trait_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/compare": {
         parameters: {
             query?: never;
@@ -158,6 +178,11 @@ export interface components {
         FetchInitialResponse: {
             /** Pool */
             pool: components["schemas"]["ItemResponse"][];
+            /**
+             * New Items
+             * @default 0
+             */
+            new_items: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -186,6 +211,8 @@ export interface components {
             image_url: string;
             /** Similarity Score */
             similarity_score: number;
+            /** Rerank Score */
+            rerank_score?: number | null;
         };
         /** RerankRequest */
         RerankRequest: {
@@ -193,10 +220,48 @@ export interface components {
             upload_id: number;
             /** Item Url */
             item_url: string;
-            /** Feedback Type */
-            feedback_type: string;
+            /**
+             * Feedback Type
+             * @enum {string}
+             */
+            feedback_type: "MORE" | "LESS";
             /** Concept */
-            concept?: string | null;
+            concept?: ("sleeves" | "neckline" | "length" | "pattern" | "fit" | "material") | null;
+            /**
+             * Fetch More
+             * @default true
+             */
+            fetch_more: boolean;
+        };
+        /**
+         * TraitProfileResponse
+         * @description Raw axis projections plus the pool spread the scorer standardises against.
+         */
+        TraitProfileResponse: {
+            /** Count */
+            count: number;
+            /** Top N */
+            top_n: number;
+            /** Mean */
+            mean: {
+                [key: string]: number;
+            };
+            /** Std */
+            std: {
+                [key: string]: number;
+            };
+            /** Anchor */
+            anchor: {
+                [key: string]: number;
+            };
+            /** Top */
+            top: {
+                [key: string]: number;
+            };
+            /** Item */
+            item?: {
+                [key: string]: number;
+            } | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -342,6 +407,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trait_profile_trait_profile_get: {
+        parameters: {
+            query: {
+                upload_id: number;
+                item_url?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TraitProfileResponse"];
                 };
             };
             /** @description Validation Error */

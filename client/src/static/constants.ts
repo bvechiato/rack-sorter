@@ -57,3 +57,22 @@ export const CONDITION_OPTIONS: { value: string; label: string }[] = [
   { value: '2', label: 'Very Good' },
   { value: '3', label: 'Good' },
 ];
+
+/** Fixed trait vocabulary. Must mirror `Trait` in `server/service/traits.py`. */
+export type Trait = 'sleeves' | 'neckline' | 'length' | 'pattern' | 'fit' | 'material';
+
+export interface TraitOption {
+  key: Trait;
+  label: string;
+  /** Axes whose reliability is still being evaluated; rendered with a hint. */
+  beta?: boolean;
+}
+
+export const TRAITS: TraitOption[] = [
+  { key: 'sleeves', label: 'Sleeves' },
+  { key: 'neckline', label: 'Neckline' },
+  { key: 'length', label: 'Length' },
+  { key: 'pattern', label: 'Pattern' },
+  { key: 'fit', label: 'Fit' },
+  { key: 'material', label: 'Material', beta: true },
+];

@@ -11,37 +11,29 @@ def save_query_to_db(upload_id, keyword, query_params, items):
     for it in items:
         if isinstance(it, dict):
             itm = it.copy()
+            embedding = itm.get('embedding')
+            clip_embedding = itm.get('clip_embedding')
         else:
-            try:
-                itm = it.to_dict()
-            except Exception:
-                itm = {}
+            itm = it.to_dict()
+            embedding = getattr(it, 'embedding', None)
+            clip_embedding = getattr(it, 'clip_embedding', None)
 
-        emb = None
-        if isinstance(itm, dict):
-            emb = itm.get('embedding') or (itm.get('data') or {}).get('embedding')
-
-        if emb is not None:
-            try:
-                if hasattr(emb, 'tolist'):
-                    emb_list = emb.tolist()
-                else:
-                    emb_list = list(map(float, emb))
-            except Exception:
-                emb_list = None
-
-            if emb_list is not None:
-                try:
-                    emb_list = [float(x) for x in emb_list]
-                except Exception:
-                    emb_list = None
-
-            if emb_list is not None:
-                itm['embedding'] = emb_list
-
+        itm['embedding'] = _as_float_list(embedding)
+        itm['clip_embedding'] = _as_float_list(clip_embedding)
         sanitized.append(itm)
 
     insert_search_items(query_id, sanitized)
+
+
+def _as_float_list(vector):
+    if vector is None:
+        return None
+    try:
+        if hasattr(vector, 'tolist'):
+            return [float(x) for x in vector.tolist()]
+        return [float(x) for x in vector]
+    except Exception:
+        return None
 
 def save_clip_analysis(cursor, upload_id, tags_dict):
     INSERT_INTO_QUERY = """
@@ -87,6 +79,19 @@ def init():
     connection = sqlite3.connect(DB)
     cursor = connection.cursor()
     cursor.executescript(CREATE_TABLES_QUERY)
+    _add_missing_columns(cursor)
     connection.commit()
     print(f"[LOG] Db initialized and tables successfully.")
     return connection
+
+
+def _add_missing_columns(cursor):
+    """Apply additive migrations to databases created before a column existed.
+
+    `CREATE TABLE IF NOT EXISTS` does not alter existing tables, so new columns need
+    an explicit, idempotent ALTER for every tracked database.
+    """
+    existing = {row[1] for row in cursor.execute("PRAGMA table_info(search_items)")}
+    if "clip_embedding" not in existing:
+        cursor.execute("ALTER TABLE search_items ADD COLUMN clip_embedding BLOB")
+        print("[LOG] Migrated search_items: added clip_embedding column")

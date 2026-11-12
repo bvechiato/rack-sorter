@@ -13,14 +13,19 @@ print("[SUCCESS] Initialised local CLIP model for item classification and feedba
 
 CONCEPT_VOCABULARY = list(dict.fromkeys(CANDIDATE_TAGS))
 
-def precompute_concept_embeddings(concepts: list[str]) -> np.ndarray:
-    print(f"[INFO] Pre-computing text embeddings for {len(concepts)} unique concept tags...")
-    inputs = processor(text=concepts, return_tensors="pt", padding=True)
+
+def get_text_embeddings(texts: list[str]) -> np.ndarray:
+    """Normalised 512-dim FashionCLIP text embeddings, one row per input string."""
+    inputs = processor(text=texts, return_tensors="pt", padding=True)
     with torch.no_grad():
         text_features = model.get_text_features(**inputs)
-        # Normalise vectors to unit length for clean cosine similarity
-        text_features /= text_features.norm(dim=-1, keepdim=True)
+        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
     return text_features.numpy()
+
+
+def precompute_concept_embeddings(concepts: list[str]) -> np.ndarray:
+    print(f"[INFO] Pre-computing text embeddings for {len(concepts)} unique concept tags...")
+    return get_text_embeddings(concepts)
 
 # Global cache of concept vectors (Shape: [len(unique_tags), 512])
 CACHED_CONCEPT_EMBEDDINGS = precompute_concept_embeddings(CONCEPT_VOCABULARY)

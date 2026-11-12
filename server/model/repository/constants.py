@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS search_items (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     model_version TEXT DEFAULT 'v1.0',
     embedding BLOB,
+    clip_embedding BLOB,
     FOREIGN KEY (query_id) REFERENCES queries(id)
 );
 
