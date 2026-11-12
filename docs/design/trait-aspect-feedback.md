@@ -507,7 +507,7 @@ concurrency the codebase has no machinery for, so it was not implemented.
 | Colour as a trait? | **No** — removed from the vocabulary; colour stays in marketplace filters (§3). |
 | Backfill strategy | **Lazy, per query**, with write-back (§4.3). |
 | Dynamic chips vs fixed traits | **Fixed traits replace dynamic chips.** `⚙ Tune` on each card opens a menu modal with a translucent scrim so images stay visible (§7). |
-| Stale-query defect | Tracked separately in [`docs/defects/stale-query-selection.md`](../defects/stale-query-selection.md); it must land before trait evaluation is meaningful. |
+| Stale-query defect | **Resolved.** `get_query_by_upload_id` now uses `ORDER BY id DESC`, logs the resolved query, and is covered by repository + service tests. |
 
 ### Still open
 
