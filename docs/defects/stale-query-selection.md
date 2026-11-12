@@ -1,6 +1,6 @@
 # Defect: rerank replays the oldest search for an upload
 
-- **Status:** Open
+- **Status:** Fixed (minimal) — `ORDER BY id DESC`, resolved-query logging, and tests landed; follow-ups 1–3 remain open as design decisions.
 - **Severity:** High — wrong data, no error surfaced
 - **Reported:** 2026-11-11
 - **Component:** `server/model/repository/query.py`, consumed by `server/service/repository.py`
@@ -85,7 +85,7 @@ There is no log line identifying which `query_id` was used, so the bug is invisi
 - Trait-aspect work (design doc) cannot be evaluated until this is fixed, since the "base pool" is
   ambiguous.
 
-## Fix
+## Fix (applied)
 
 ### Recommended (minimal, no API change)
 
@@ -130,8 +130,8 @@ print(f"[INFO] Resolving upload {upload_id} -> query {query_dto.id}")
 
 ## Checklist
 
-- [ ] Add `ORDER BY id DESC LIMIT 1`
-- [ ] Log resolved `query_id` in `/rerank`
-- [ ] Add repository + service tests
+- [x] Add `ORDER BY id DESC LIMIT 1`
+- [x] Log resolved `query_id` (in `get_results_by_upload_id`, called by `/rerank` and fetch-more)
+- [x] Add repository + service tests (`test_get_query_by_upload_id_returns_the_newest_query`, `test_get_results_by_upload_id_resolves_the_newest_query`)
 - [ ] Decide on follow-up 2 (feedback scoping) before trait evaluation
-- [ ] Re-run `/rerank` for uploads 1, 2, 3, 4, 13, 24, 26 and confirm the pool matches the last search
+- [ ] (Optional) Re-run `/rerank` for uploads 1, 2, 3, 4, 13, 24, 26 and confirm the pool matches the last search

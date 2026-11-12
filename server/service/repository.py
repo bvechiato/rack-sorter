@@ -19,4 +19,5 @@ def get_results_by_upload_id(upload_id: int) -> list[dict]:
     query_dto = get_query_by_upload_id(upload_id)
 
     query_id = query_dto.id
+    print(f"[INFO] Resolving upload {upload_id} -> query {query_id}")
     return get_items_by_query_id(query_id)

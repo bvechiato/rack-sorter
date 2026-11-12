@@ -44,6 +44,16 @@ def test_get_upload_bytes_by_id_throws_if_file_missing(tmp_path, monkeypatch):
         
     assert "Image file missing from disk" in str(exc_info.value)
 
+def test_get_results_by_upload_id_resolves_the_newest_query(monkeypatch):
+    # After two searches for one upload, the newest query's pool must win.
+    newest = [SimpleNamespace(title="new", url="new")]
+    older = [SimpleNamespace(title="old", url="old")]
+
+    monkeypatch.setattr(repo, "get_query_by_upload_id", lambda uid: SimpleNamespace(id=99, search_keyword="latest"))
+    monkeypatch.setattr(repo, "get_items_by_query_id", lambda qid: newest if qid == 99 else older)
+
+    assert repo.get_results_by_upload_id(7) == newest
+
 def test_get_results_by_upload_id_when_query_does_not_exist(monkeypatch):
     # given: mock returns None instead of a Query object
     monkeypatch.setattr(repo, "get_query_by_upload_id", lambda uid: None)
