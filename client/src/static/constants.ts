@@ -58,8 +58,10 @@ export const CONDITION_OPTIONS: { value: string; label: string }[] = [
   { value: '3', label: 'Good' },
 ];
 
-/** Fixed trait vocabulary. Must mirror `Trait` in `server/service/traits.py`. */
-export type Trait = 'sleeves' | 'neckline' | 'length' | 'pattern' | 'fit' | 'material';
+import type { components } from '../types/api';
+
+/** Fixed trait vocabulary, derived from the server contract (RerankRequest.concept). */
+export type Trait = NonNullable<components['schemas']['RerankRequest']['concept']>;
 
 export interface TraitOption {
   key: Trait;

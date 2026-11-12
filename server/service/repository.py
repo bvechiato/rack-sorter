@@ -1,8 +1,10 @@
 import os
+import logging
 from model.repository.user_uploads import get_upload_by_id
 from model.repository.query import get_query_by_upload_id
 from model.repository.search_items import get_items_by_query_id
 from model.repository.constants import UPLOADS_PATH
+logger = logging.getLogger(__name__)
 
 def get_upload_bytes_by_id(upload_id: int) -> bytes:
     upload = get_upload_by_id(upload_id)
@@ -19,5 +21,5 @@ def get_results_by_upload_id(upload_id: int) -> list[dict]:
     query_dto = get_query_by_upload_id(upload_id)
 
     query_id = query_dto.id
-    print(f"[INFO] Resolving upload {upload_id} -> query {query_id}")
+    logger.info(f"Resolving upload {upload_id} -> query {query_id}")
     return get_items_by_query_id(query_id)

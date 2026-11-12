@@ -11,3 +11,6 @@ server/service/static/uploads/*
 # Local eval database (large, machine-specific)
 server/search_eval.db
 server/search_eval.db-*
+
+# Local-only documentation
+/docs/

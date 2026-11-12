@@ -1,9 +1,11 @@
+import logging
 import sqlite3
 import uuid
 import os
 from model.repository.constants import UPLOADS_PATH, DB, CREATE_TABLES_QUERY
 from model.repository.query import insert_query
 from model.repository.search_items import insert_search_items
+logger = logging.getLogger(__name__)
 
 def save_query_to_db(upload_id, keyword, query_params, items):
     query_id = insert_query(upload_id, keyword, query_params)
@@ -54,10 +56,10 @@ def save_user_upload(file_contents: bytes, tags_dict: dict):
 
     cursor.execute("INSERT INTO user_uploads (image_path) VALUES (?)", (image_path,))
     upload_id = cursor.lastrowid
-    print(f"[LOG] User upload saved with ID: {upload_id} and path: {image_path}")
+    logger.info(f"User upload saved with ID: {upload_id} and path: {image_path}")
 
     save_clip_analysis(cursor, upload_id, tags_dict)
-    print(f"[LOG] CLIP analysis tags saved for upload ID: {upload_id}")
+    logger.info(f"CLIP analysis tags saved for upload ID: {upload_id}")
 
     conn.commit()
     conn.close()
@@ -81,7 +83,7 @@ def init():
     cursor.executescript(CREATE_TABLES_QUERY)
     _add_missing_columns(cursor)
     connection.commit()
-    print(f"[LOG] Db initialized and tables successfully.")
+    logger.info(f"Db initialized and tables successfully.")
     return connection
 
 
@@ -94,4 +96,4 @@ def _add_missing_columns(cursor):
     existing = {row[1] for row in cursor.execute("PRAGMA table_info(search_items)")}
     if "clip_embedding" not in existing:
         cursor.execute("ALTER TABLE search_items ADD COLUMN clip_embedding BLOB")
-        print("[LOG] Migrated search_items: added clip_embedding column")
+        logger.info("Migrated search_items: added clip_embedding column")

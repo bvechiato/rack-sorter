@@ -1,4 +1,5 @@
 import threading
+import logging
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
@@ -8,6 +9,7 @@ from model.repository.search_items import get_item_by_url, update_item_clip_embe
 from model.repository.user_uploads import get_embedding_by_upload_id
 from dtos import SearchItem, RerankFeedback
 from service import traits
+logger = logging.getLogger(__name__)
 
 CLIP_DIM = 512
 DINO_DIM = 768
@@ -27,7 +29,7 @@ def compute_base_visual_scores(items: List[SearchItem], intent_vector: np.ndarra
             base_score = cosine_similarity(intent_vector, candidate_embedding)[0][0]
             item.rerank_score = float(base_score)
         except Exception as e:
-            print(f"[WARN] Failed visual score computation for item: {item.url}. Error: {e}")
+            logger.warning(f"Failed visual score computation for item: {item.url}. Error: {e}")
             item.rerank_score = 0.0
         scored_items.append(item)
     return scored_items
@@ -70,7 +72,7 @@ def apply_trait_modifiers(
 
     anchor_unit = _unit(anchor_clip)
     if anchor_unit is None:
-        print("[WARN] Trait feedback ignored: anchor CLIP embedding unavailable")
+        logger.warning("Trait feedback ignored: anchor CLIP embedding unavailable")
         stats["skipped_missing_vector"] = len(trait_feedback)
         return stats
 
@@ -83,16 +85,16 @@ def apply_trait_modifiers(
         key = (fb.concept or "").strip().lower()
         axis = axes.get(key)
         if axis is None:
-            print(f"[WARN] Unknown trait concept '{fb.concept}' ignored; expected one of {list(axes)}")
+            logger.warning(f"Unknown trait concept '{fb.concept}' ignored; expected one of {list(axes)}")
             continue
         if fb.feedback_type not in ("MORE", "LESS"):
-            print(f"[WARN] Unknown feedback type '{fb.feedback_type}' ignored")
+            logger.warning(f"Unknown feedback type '{fb.feedback_type}' ignored")
             continue
 
         clicked = _find_item(items, fb.item_url)
         clicked_clip = _unit(clicked.clip_embedding) if clicked is not None else None
         if clicked_clip is None:
-            print(f"[WARN] Cross-sell trait event skipped: no CLIP vector for clicked item {fb.item_url}")
+            logger.warning(f"Cross-sell trait event skipped: no CLIP vector for clicked item {fb.item_url}")
             stats["skipped_missing_vector"] += 1
             continue
         _assert_same_space(clicked_clip, axis, fb.item_url)
@@ -109,8 +111,8 @@ def apply_trait_modifiers(
             z_cache[key] = z_scores
             stats["missing_vectors"] += missing
             if flat:
-                print(
-                    f"[WARN] Trait event skipped: axis '{key}' has no spread across this pool "
+                logger.warning(
+                    f"Trait event skipped: axis '{key}' has no spread across this pool "
                     f"(std < {traits.MIN_TRAIT_SPREAD}); cannot standardise the projection"
                 )
         if z_scores is None:
@@ -136,7 +138,7 @@ def apply_trait_modifiers(
 
 
 def rerank(previous_results: Set[SearchItem], feedback_history: List[RerankFeedback], upload_id: int) -> List[SearchItem]:
-    print(f"[INFO] Running dual-engine rerank pipeline on {len(previous_results)} items.")
+    logger.info(f"Running dual-engine rerank pipeline on {len(previous_results)} items.")
 
     # 1. Split the data history streams early
     image_fb = [fb for fb in feedback_history if not fb.concept]
@@ -145,23 +147,23 @@ def rerank(previous_results: Set[SearchItem], feedback_history: List[RerankFeedb
     # 2. Build the visual intent vector using visual-only interactions
     anchor_embedding = np.asarray(get_embedding_by_upload_id(upload_id), dtype=float).reshape(1, -1)
     intent_vector = build_intent_vector(anchor_embedding, image_fb)
-    print(f"[SUCCESS] Intent vector created")
+    logger.info(f"Intent vector created")
 
     # 3. Execute Engine 1: Establish our DINO baseline image similarity rankings
     items_with_base_scores = compute_base_visual_scores(list(previous_results), intent_vector)
-    print(f"[SUCCESS] Generic image feedback computed")
+    logger.info(f"Generic image feedback computed")
 
     # 4. Execute Engine 2: Layer trait-axis adjustments over the visual baseline
     if trait_fb:
         anchor_clip = get_anchor_clip_embedding(upload_id)
         if anchor_clip is None:
-            print("[WARN] Trait feedback ignored: anchor CLIP embedding unavailable")
+            logger.warning("Trait feedback ignored: anchor CLIP embedding unavailable")
         else:
             ensure_clip_embeddings(items_with_base_scores, upload_id)
             axes = traits.get_trait_axes()
             stats = apply_trait_modifiers(items_with_base_scores, trait_fb, anchor_clip, axes)
-            print(
-                f"[SUCCESS] Trait feedback applied: {stats['applied']}/{stats['events']} events, "
+            logger.info(
+                f"Trait feedback applied: {stats['applied']}/{stats['events']} events, "
                 f"superseded={stats['superseded']}, "
                 f"degenerate={stats['skipped_degenerate']}, "
                 f"missing_clicked={stats['skipped_missing_vector']}, "
@@ -192,7 +194,7 @@ def build_intent_vector(anchor_embedding: np.ndarray, image_feedback: List[Reran
             else:
                 negative_embeddings.append(embedding)
         except Exception as e:
-            print(f"[WARN] Error fetching embedding for vector update: {e}")
+            logger.warning(f"Error fetching embedding for vector update: {e}")
 
     if positive_embeddings:
         intent = np.mean(positive_embeddings, axis=0)
@@ -239,7 +241,7 @@ def get_anchor_clip_embedding(upload_id: int) -> Optional[np.ndarray]:
         _anchor_cache[upload_id] = vector
         return vector
     except Exception as e:
-        print(f"[WARN] Could not compute anchor CLIP embedding for upload {upload_id}: {e}")
+        logger.warning(f"Could not compute anchor CLIP embedding for upload {upload_id}: {e}")
         return None
 
 
@@ -265,10 +267,10 @@ def ensure_clip_embeddings(items: Sequence[SearchItem], upload_id: int) -> Tuple
                 encoded += 1
             except Exception as e:
                 failed += 1
-                print(f"[WARN] CLIP backfill failed for {item.url}: {e}")
+                logger.warning(f"CLIP backfill failed for {item.url}: {e}")
 
     if encoded or failed:
-        print(f"[INFO] Lazy CLIP backfill for upload {upload_id}: {encoded} encoded, {failed} failed")
+        logger.info(f"Lazy CLIP backfill for upload {upload_id}: {encoded} encoded, {failed} failed")
     return encoded, failed
 
 
