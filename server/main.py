@@ -54,4 +54,3 @@ async def serve_frontend():
 @app.get("/manifest.json")
 async def serve_manifest():
     return FileResponse("manifest.json")
-PY

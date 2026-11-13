@@ -53,4 +53,3 @@ def rerank(previous_results: Set[SearchItem], feedback_history: List[RerankFeedb
 
     items_with_base_scores.sort(key=lambda x: x.rerank_score, reverse=True)
     return items_with_base_scores
-PY
