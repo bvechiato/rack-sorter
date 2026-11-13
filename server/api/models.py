@@ -56,14 +56,6 @@ class BatchRerankRequest(BaseModel):
     feedback: list[FeedbackEvent]
     fetch_more: bool = True
 
-class ItemComparisonRequest(BaseModel):
-    upload_id: int
-    item_clicked_url: str
-
-class ItemComparisonResponse(BaseModel):
-    distinguishing_characteristics: list[str]
-
-
 class TraitProfileResponse(BaseModel):
     """Raw axis projections plus the pool spread the scorer standardises against."""
 

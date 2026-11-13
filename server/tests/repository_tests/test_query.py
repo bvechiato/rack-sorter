@@ -1,4 +1,4 @@
-from model.repository.query import QueryDTO, insert_query, get_query_by_upload_id
+from model.repository.query import QueryDTO, get_query_by_upload_id
 import model.repository.query as mod
 
 

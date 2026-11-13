@@ -3,7 +3,6 @@ import logging
 import torch
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
-from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from service.static.CONSTANTS import CANDIDATE_TAGS, COLOUR_MAP, CATEGORY_HIERARCHY
 logger = logging.getLogger(__name__)
@@ -115,46 +114,3 @@ def get_single_clip_embedding(image_bytes: bytes) -> np.ndarray:
         features = mdl.get_image_features(**inputs)
         features /= features.norm(dim=-1, keepdim=True)
     return features.squeeze().numpy()
-
-def extract_relative_feedback_chips(
-    anchor_image_bytes: bytes,
-    clicked_item_image_bytes: bytes,
-    top_k: int = 3
-) -> list[str]:
-    """
-    Finds concepts highly present in the clicked item but weaker or absent in the anchor
-    using 512-dimensional FashionCLIP image spaces.
-    """
-    logger.info("Extracting relative differences using FashionCLIP")
-
-    try:
-        # 1. Generate the 512-dim FashionCLIP vectors on the fly for just these two items
-        anchor_vector = get_single_clip_embedding(anchor_image_bytes).reshape(1, -1)
-        clicked_vector = get_single_clip_embedding(clicked_item_image_bytes).reshape(1, -1)
-
-        # 2. Calculate similarities to all vocabulary terms (512 vs 512 matrix multiplication)
-        anchor_similarities = cosine_similarity(anchor_vector, get_concept_embeddings())[0]
-        clicked_similarities = cosine_similarity(clicked_vector, get_concept_embeddings())[0]
-
-        relative_differences = clicked_similarities - anchor_similarities
-
-    except Exception as e:
-        logger.error("Failed to calculate similarities: %s", e)
-        return []
-
-    try:
-        ranked_indices = np.argsort(relative_differences)[::-1]
-
-        dynamic_chips = []
-        for idx in ranked_indices:
-            # Enforce baseline threshold to ensure the clicked item actually contains the attribute
-            if clicked_similarities[idx] > 0.18:
-                dynamic_chips.append(CONCEPT_VOCABULARY[idx])
-
-            if len(dynamic_chips) >= top_k:
-                break
-
-        return dynamic_chips
-    except Exception as e:
-        logger.error("Failed to extract relative feedback: %s", e)
-        return []
