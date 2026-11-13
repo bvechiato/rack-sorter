@@ -111,6 +111,12 @@ function App() {
         />
       )}
 
+      {!searchState.loading && searchState.newItems > 0 && (
+        <div className="new-items-notice">
+          +{searchState.newItems} new item{searchState.newItems === 1 ? '' : 's'} from a wider search
+        </div>
+      )}
+
       <ProductGrid 
         products={searchState.products} 
         onFeedback={(itemUrl, feedbackType) =>
