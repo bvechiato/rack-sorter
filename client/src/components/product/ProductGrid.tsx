@@ -18,13 +18,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onFeedback, onTune,
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (!products || products.length === 0) {
-    return (
-      <div className="results-grid">
-        <div style={{ textAlign: 'center', color: '#71717a', padding: '40px 0', width: '100%' }}>
-          No matching data layers found in background storage.
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Pure, CSS-driven column breakpoints. No layout calculation lag.
