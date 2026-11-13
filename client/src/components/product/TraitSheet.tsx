@@ -187,11 +187,6 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
                     'No trait selected'
                   )}
                 </div>
-                {newItems > 0 && (
-                  <div className="trait-sheet-new">
-                    +{newItems} new item{newItems === 1 ? '' : 's'} from a wider search
-                  </div>
-                )}
               </>
             )}
           </div>
