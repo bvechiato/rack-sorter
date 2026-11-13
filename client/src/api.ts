@@ -65,15 +65,3 @@ export async function fetchTraitProfile(uploadId: number, itemUrl?: string): Pro
   const res = await fetch(`${API_HOST}/trait-profile?${params.toString()}`);
   return await handleResponse<TraitProfileResponse>(res);
 }
-
-type ItemComparisonRequest = components['schemas']['ItemComparisonRequest'];
-type ItemComparisonResponse = components['schemas']['ItemComparisonResponse'];
-
-export async function compare(data: ItemComparisonRequest): Promise<ItemComparisonResponse> {
-  const res = await fetch(`/compare`, { 
-    method: 'POST', 
-    headers: { 'Content-Type': 'application/json' }, 
-    body: JSON.stringify(data)
-  });
-  return await handleResponse<ItemComparisonResponse>(res);
-}

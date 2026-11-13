@@ -4,32 +4,18 @@
  */
 
 export interface paths {
-    "/": {
+    "/health": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Serve Frontend */
-        get: operations["serve_frontend__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/manifest.json": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Manifest */
-        get: operations["serve_manifest_manifest_json_get"];
+        /**
+         * Health
+         * @description Liveness probe; cheap and independent of the models/database.
+         */
+        get: operations["health_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -66,26 +52,6 @@ export interface paths {
         put?: never;
         /** Fetch Initial */
         post: operations["fetch_initial_fetch_initial_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Health
-         * @description Liveness probe; cheap and independent of the models/database.
-         */
-        get: operations["health_health_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -146,17 +112,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/compare": {
+    "/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Serve Frontend */
+        get: operations["serve_frontend__get"];
         put?: never;
-        /** Compare Items */
-        post: operations["compare_items_compare_post"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manifest.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Manifest */
+        get: operations["serve_manifest_manifest_json_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -253,18 +236,6 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** ItemComparisonRequest */
-        ItemComparisonRequest: {
-            /** Upload Id */
-            upload_id: number;
-            /** Item Clicked Url */
-            item_clicked_url: string;
-        };
-        /** ItemComparisonResponse */
-        ItemComparisonResponse: {
-            /** Distinguishing Characteristics */
-            distinguishing_characteristics: string[];
-        };
         /** ItemResponse */
         ItemResponse: {
             /** Title */
@@ -345,7 +316,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_frontend__get: {
+    health_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -360,27 +331,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_manifest_manifest_json_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
         };
@@ -447,28 +400,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    health_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
                 };
             };
         };
@@ -571,18 +502,14 @@ export interface operations {
             };
         };
     };
-    compare_items_compare_post: {
+    serve_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ItemComparisonRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -590,16 +517,27 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemComparisonResponse"];
+                    "application/json": unknown;
                 };
             };
-            /** @description Validation Error */
-            422: {
+        };
+    };
+    serve_manifest_manifest_json_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": unknown;
                 };
             };
         };

@@ -39,6 +39,35 @@ def build_query_params(request: "FetchInitialRequest") -> str:
                 query_params += f"&status_ids[]={cid}"
     return query_params
 
+def build_query_params(request) -> str:
+    """Translate a fetch_initial request into Vinted catalog query params."""
+    keyword = request.keyword.replace(" ", "+")
+    from service.static.CONSTANTS import COLOUR_MAP, VINTED_CATEGORY_MAP
+
+    catalog_id = VINTED_CATEGORY_MAP.get(request.selectedCategory, "")
+    colour_ids = []
+    for c_name in request.selectedColors.split(","):
+        if c_name in COLOUR_MAP:
+            colour_ids.extend(COLOUR_MAP.get(c_name))
+
+    query_params = f"search_text={keyword}"
+    if catalog_id:
+        query_params += f"&catalog[]={catalog_id}"
+    if colour_ids:
+        for c_id in colour_ids:
+            query_params += f"&color_ids[]={c_id}"
+    if request.selectedSizes:
+        for size_id in request.selectedSizes.split(","):
+            query_params += f"&size_ids[]={size_id}"
+    if request.maxPrice:
+        query_params += f"&price_to={request.maxPrice}&currency=GBP"
+    if request.selectedConditions:
+        for cid in request.selectedConditions.split(","):
+            if cid:
+                query_params += f"&status_ids[]={cid}"
+    return query_params
+
+
 def scrape_vinted_pool(query_params: str) -> set[SearchItem]:
     """Hits the public Vinted catalog endpoint with exact profile constraints."""
     url = f"https://www.vinted.co.uk/catalog?&{query_params}"
