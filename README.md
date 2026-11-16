@@ -2,7 +2,7 @@
 
 ## What Rack Sorter Does
 
-Rack Sorter is a fashion discovery app that helps users find clothing listings visually similar to a reference image. A user uploads a photo, the app analyzes the image, and then it searches Vinted for items that match the visual style and selected filters. Results can be refined in place with "More/Less like this" or with per-trait controls (sleeves, neckline, length, pattern, fit, material).
+Rack Sorter is a fashion discovery app that helps users find clothing listings visually similar to a reference image. A user uploads a photo, the app analyzes the image, and then it searches Vinted for items that match the visual style and selected filters. Results can be refined in place with "More/Less like this" or with per-trait controls (sleeves, neckline, length, pattern, fit).
 
 ## Features
 
@@ -42,7 +42,7 @@ Every listing card has three actions:
 
 - **＋ More** — treat this listing as a stronger example of what the user wants.
 - **－ Less** — treat it as something to move away from.
-- **⚙ Tune** — open the trait sheet. Traits are fixed (`sleeves`, `neckline`, `length`, `pattern`, `fit`, `material`) and are applied relative to the uploaded photo: with a sleeveless top selected, "more sleeves" moves toward sleeved items.
+- **⚙ Tune** — open the trait sheet. Traits are fixed (`sleeves`, `neckline`, `length`, `pattern`, `fit`) and are applied relative to the uploaded photo: with a sleeveless top selected, "more sleeves" moves toward sleeved items.
 
 ## Client Architecture
 

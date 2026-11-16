@@ -202,7 +202,7 @@ export interface components {
              */
             feedback_type: "MORE" | "LESS";
             /** Concept */
-            concept?: ("sleeves" | "neckline" | "length" | "pattern" | "fit" | "material") | null;
+            concept?: ("sleeves" | "neckline" | "length" | "pattern" | "fit") | null;
         };
         /** FetchInitialRequest */
         FetchInitialRequest: {
@@ -261,7 +261,7 @@ export interface components {
              */
             feedback_type: "MORE" | "LESS";
             /** Concept */
-            concept?: ("sleeves" | "neckline" | "length" | "pattern" | "fit" | "material") | null;
+            concept?: ("sleeves" | "neckline" | "length" | "pattern" | "fit") | null;
             /**
              * Fetch More
              * @default true

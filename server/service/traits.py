@@ -15,9 +15,9 @@ import numpy as np
 # Closed vocabulary. The client mirrors this list in `client/src/static/constants.ts`;
 # unknown values are rejected at the API edge so legacy free-text chips never reach
 # the scorer again.
-Trait = Literal["sleeves", "neckline", "length", "pattern", "fit", "material"]
+Trait = Literal["sleeves", "neckline", "length", "pattern", "fit"]
 
-TRAIT_KEYS: tuple[str, ...] = ("sleeves", "neckline", "length", "pattern", "fit", "material")
+TRAIT_KEYS: tuple[str, ...] = ("sleeves", "neckline", "length", "pattern", "fit")
 
 # (positive prompt, negative prompt) per trait. Prompts describe the *positive* end
 # of the axis; `s_i` therefore grows toward the positive pole.
@@ -27,8 +27,6 @@ TRAIT_PROMPTS: Dict[str, tuple[str, str]] = {
     "length": ("long maxi length garment", "cropped short length garment"),
     "pattern": ("floral printed pattern", "plain solid colour"),
     "fit": ("oversized loose fit", "tight fitted silhouette"),
-    # Beta: weakest axis, kept behind the vocabulary flag until eval justifies it.
-    "material": ("knitted textured fabric", "smooth woven fabric"),
 }
 
 W_MORE = 0.45
