@@ -57,7 +57,7 @@ function polygon(profile: TraitProfile, values: Record<string, number> | null | 
 const TraitRadar: React.FC<TraitRadarProps> = ({ profile, label = 'your photo' }) => {
   const hasItem = Boolean(profile.item);
   const description = [
-    `Trait axes for ${profile.count} candidates, top ${profile.top_n}.`,
+    `Trait axes for ${profile.count} candidates.`,
     hasItem ? 'The clicked item is outlined.' : '',
   ].filter(Boolean).join(' ');
 

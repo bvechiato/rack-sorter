@@ -35,12 +35,10 @@ def test_profile_reports_pool_spread_anchor_and_top(monkeypatch):
     result = profile.build_trait_profile(7, item_url="right")
 
     assert result["count"] == 3
-    assert result["top_n"] == 3
     assert result["mean"]["sleeves"] == pytest.approx(0.0)
     assert result["std"]["sleeves"] == pytest.approx(np.sqrt(2 / 3))
     # Anchor points along the second axis, so it is neutral on the first.
     assert result["anchor"]["sleeves"] == pytest.approx(0.0)
-    assert result["top"]["sleeves"] == pytest.approx(0.0)
     assert result["item"]["sleeves"] == pytest.approx(1.0)
     assert captured["history"] == []
 
