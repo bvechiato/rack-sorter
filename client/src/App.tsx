@@ -119,6 +119,12 @@ function App() {
         </div>
       )}
 
+      {searchState.feedbacksSinceFetch > 0 && (
+        <div className="feedback-counter-notice">
+          {3 - searchState.feedbacksSinceFetch} more feedback{3 - searchState.feedbacksSinceFetch === 1 ? '' : 's'} until new items are fetched
+        </div>
+      )}
+
       <ProductGrid 
         products={searchState.products} 
         onFeedback={(itemUrl, feedbackType) =>

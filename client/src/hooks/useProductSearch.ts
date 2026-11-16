@@ -13,6 +13,10 @@ export function useProductSearch() {
   const [loading, setLoading] = useState(false);
   const [traitPicks, setTraitPicks] = useState<Record<string, TraitPicks>>({});
   const [newItems, setNewItems] = useState(0);
+  // Feedbacks accumulated since the last catalogue-page fetch. A new page is
+  // pulled only every FETCH_EVERY feedbacks, so most taps stay cheap.
+  const [feedbacksSinceFetch, setFeedbacksSinceFetch] = useState(0);
+  const FETCH_EVERY = 3;
 
   const traitProfile = useTraitProfile();
 
@@ -43,6 +47,7 @@ export function useProductSearch() {
       setProducts(poolData.pool || []);
       setTraitPicks({});
       setNewItems(0);
+      setFeedbacksSinceFetch(0);
       clearTraitProfile();
     } catch (err) {
       throw new Error('Failed fetching items with the chosen keyword.');
@@ -59,10 +64,13 @@ export function useProductSearch() {
     setLoading(true);
 
     try {
+      const eventsCount = 1;
+      const willFetch = feedbacksSinceFetch + eventsCount >= FETCH_EVERY;
+
       const rankedData = await rerankBatch({
         upload_id: uploadId,
         feedback: [{ item_url: itemUrl, feedback_type: feedbackType, concept: concept ?? null }],
-        fetch_more: true,
+        fetch_more: willFetch,
       });
 
       setProducts(rankedData.pool || []);
@@ -75,6 +83,8 @@ export function useProductSearch() {
           [itemUrl]: { ...prev[itemUrl], [concept]: feedbackType },
         }));
       }
+
+      setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
 
       await loadTraitProfile(uploadId, itemUrl);
     } catch (err) {
@@ -96,16 +106,21 @@ export function useProductSearch() {
 
     setLoading(true);
     try {
+      const eventsCount = feedback.length;
+      const willFetch = feedbacksSinceFetch + eventsCount >= FETCH_EVERY;
+
       const rankedData = await rerankBatch({
         upload_id: uploadId,
         feedback,
-        fetch_more: true,
+        fetch_more: willFetch,
       });
 
       setProducts(rankedData.pool || []);
       setCurrentPool(rankedData.pool || []);
       setNewItems(rankedData.new_items ?? 0);
       setTraitPicks(prev => ({ ...prev, [itemUrl]: picks }));
+
+      setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
 
       await loadTraitProfile(uploadId, itemUrl);
     } catch (err) {
@@ -122,6 +137,7 @@ export function useProductSearch() {
       loading,
       traitPicks,
       newItems,
+      feedbacksSinceFetch,
       traitProfile: traitProfile.state.traitProfile,
       profileError: traitProfile.state.profileError,
     },
