@@ -3,7 +3,6 @@ import { components } from './types/api';
 type AnalyseAnchorImageResponse = components['schemas']['AnalyseAnchorImageResponse'];
 type FetchInitialRequest = components['schemas']['FetchInitialRequest'];
 type FetchInitialResponse = components['schemas']['FetchInitialResponse'];
-type RerankRequest = components['schemas']['RerankRequest'];
 type BatchRerankRequest = components['schemas']['BatchRerankRequest'];
 type TraitProfileResponse = components['schemas']['TraitProfileResponse'];
 
@@ -33,15 +32,6 @@ export async function fetchInitial(data: FetchInitialRequest): Promise<FetchInit
     method: 'POST', 
     headers: { 'Content-Type': 'application/json' }, 
     body: JSON.stringify(data)
-  });
-  return await handleResponse<FetchInitialResponse>(res);
-}
-
-export async function rerank(data: RerankRequest): Promise<FetchInitialResponse> {
-  const res = await fetch(`${API_HOST}/rerank`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
   });
   return await handleResponse<FetchInitialResponse>(res);
 }

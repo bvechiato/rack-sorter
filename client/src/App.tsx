@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import Header from './components/Header';
+import ErrorBoundary from './components/ErrorBoundary';
 import SearchActionBar from './components/SearchActionBar';
 import KeywordSuggestions from './components/KeywordSuggestions';
 import PreferencesPanel from './components/preferences/PreferencesPanel';
@@ -31,7 +32,7 @@ function App() {
     try {
       await imageActions.handleImageUpload(file as File);
     } catch (err: any) {
-      alert(err.message);
+      uiActions.showError(err.message);
     }
   };
 
@@ -40,7 +41,7 @@ function App() {
       await searchActions.scrapeProducts(imageState.uploadId, imageState.confirmedKeyword, filters);
       uiActions.setPanelOpen(false);
     } catch (err: any) {
-      alert(err.message);
+      uiActions.showError(err.message);
     }
   };
 
@@ -70,7 +71,8 @@ function App() {
   }, [uiState.traitSheetUrl, imageState.uploadId]);
 
   return (
-    <div>
+    <ErrorBoundary>
+      <div>
       <Header />
 
       <SearchActionBar
@@ -146,6 +148,13 @@ function App() {
         onClick={uiActions.closePanel}
       />
 
+      {uiState.errorMessage && (
+        <div className="toast toast-error" role="alert" onClick={uiActions.clearError}>
+          {uiState.errorMessage}
+          <button className="toast-close" aria-label="Dismiss">×</button>
+        </div>
+      )}
+
       <button
         className="fab-menu"
         onClick={uiActions.togglePanel}
@@ -154,6 +163,7 @@ function App() {
         ☰
       </button>
     </div>
+    </ErrorBoundary>
   );
 }
 

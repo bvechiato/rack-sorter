@@ -1,38 +1,23 @@
 import { useState } from 'react';
-import { fetchInitial, fetchTraitProfile, rerank, rerankBatch } from '../api';
+import { fetchInitial, rerankBatch } from '../api';
 import type { components } from '../types/api';
 import type { Trait } from '../static/constants';
+import { useTraitProfile } from './useTraitProfile';
 
 export type TraitPicks = Partial<Record<Trait, 'MORE' | 'LESS'>>;
-type TraitProfile = components['schemas']['TraitProfileResponse'];
 type Item = components['schemas']['ItemResponse'];
 
 export function useProductSearch() {
   const [currentPool, setCurrentPool] = useState<Item[]>([]);
   const [products, setProducts] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
-  // Trait choices keyed by item URL. Kept outside the sheet so reopening it shows
-  // what is already applied, and the card's Tune trigger can show an active state.
   const [traitPicks, setTraitPicks] = useState<Record<string, TraitPicks>>({});
-  // Items appended by the last rerank's extra catalogue page.
   const [newItems, setNewItems] = useState(0);
-  // Debug view of the scorer: raw axis projections + the pool spread it standardises
-  // against. Refreshed after every feedback so the diagram moves with the ranking.
-  const [traitProfile, setTraitProfile] = useState<TraitProfile | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
 
-  const loadTraitProfile = async (uploadId: any, itemUrl?: string) => {
-    if (!uploadId) return;
-    setProfileError(null);
-    try {
-      setTraitProfile(await fetchTraitProfile(Number(uploadId), itemUrl));
-    } catch (err) {
-      // The radar is a debugging aid: never fail the search or swallow the reason.
-      const message = err instanceof Error ? err.message : 'Trait profile unavailable';
-      console.warn('[WARN] Trait profile failed:', message);
-      setProfileError(message);
-    }
-  };
+  const traitProfile = useTraitProfile();
+
+  const loadTraitProfile = traitProfile.actions.loadTraitProfile;
+  const clearTraitProfile = traitProfile.actions.clearTraitProfile;
 
   const scrapeProducts = async (uploadId: any, keyword: string, filters: any) => {
     if (!keyword.trim()) {
@@ -51,17 +36,14 @@ export function useProductSearch() {
         selectedConditions: filters.selectedConditions.join(',')
       };
 
-      // Now this passes type checking!
       const poolData = await fetchInitial(requestData);
       console.log(`[INFO] Sending scrape request with filters: ${JSON.stringify(requestData)}`);
 
       setCurrentPool(poolData.pool || []);
       setProducts(poolData.pool || []);
-      // A fresh pool has no trait history yet.
       setTraitPicks({});
       setNewItems(0);
-      setTraitProfile(null);
-      setProfileError(null);
+      clearTraitProfile();
     } catch (err) {
       throw new Error('Failed fetching items with the chosen keyword.');
     } finally {
@@ -77,11 +59,9 @@ export function useProductSearch() {
     setLoading(true);
 
     try {
-      const rankedData = await rerank({
+      const rankedData = await rerankBatch({
         upload_id: uploadId,
-        item_url: itemUrl,
-        feedback_type: feedbackType,
-        concept: concept ?? null,
+        feedback: [{ item_url: itemUrl, feedback_type: feedbackType, concept: concept ?? null }],
         fetch_more: true,
       });
 
@@ -96,21 +76,14 @@ export function useProductSearch() {
         }));
       }
 
-      // Recompute the debug diagram from the *new* pool/ranking. Awaited so the
-      // sheet's "updating" state covers it, but errors stay attached to the panel.
       await loadTraitProfile(uploadId, itemUrl);
     } catch (err) {
-      // Surface the backend reason; a generic message hides axis faults.
       throw err instanceof Error ? err : new Error('Vector calculation error');
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Send every queued trait pick in one request. The server fetches one page before
-   * reranking, so the grid refreshes exactly once with the new candidates included.
-   */
   const applyTraitPicks = async (uploadId: any, itemUrl: string, picks: TraitPicks) => {
     if (!uploadId) {
       throw new Error('Missing upload id');
@@ -132,7 +105,6 @@ export function useProductSearch() {
       setProducts(rankedData.pool || []);
       setCurrentPool(rankedData.pool || []);
       setNewItems(rankedData.new_items ?? 0);
-      // The sheet sends its full local selection, so replace rather than merge.
       setTraitPicks(prev => ({ ...prev, [itemUrl]: picks }));
 
       await loadTraitProfile(uploadId, itemUrl);
@@ -150,8 +122,8 @@ export function useProductSearch() {
       loading,
       traitPicks,
       newItems,
-      traitProfile,
-      profileError,
+      traitProfile: traitProfile.state.traitProfile,
+      profileError: traitProfile.state.profileError,
     },
     actions: {
       scrapeProducts,
