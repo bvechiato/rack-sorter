@@ -11,6 +11,10 @@ def test_querydto_from_row():
 
 def test_get_query_by_upload_id_monkeypatch(monkeypatch):
     class FakeConn:
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
         def cursor(self):
             return self
 
@@ -23,7 +27,7 @@ def test_get_query_by_upload_id_monkeypatch(monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr(mod, 'sqlite3', type('S', (), {'connect': lambda db: FakeConn()}))
+    monkeypatch.setattr(mod, 'db_connection', lambda: FakeConn())
     dto = get_query_by_upload_id(1)
     assert dto.id == 3
 
@@ -32,6 +36,10 @@ def test_get_query_by_upload_id_returns_the_newest_query(monkeypatch):
     captured = {}
 
     class FakeConn:
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
         def cursor(self):
             return self
 
@@ -44,7 +52,7 @@ def test_get_query_by_upload_id_returns_the_newest_query(monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr(mod, 'sqlite3', type('S', (), {'connect': lambda db: FakeConn()}))
+    monkeypatch.setattr(mod, 'db_connection', lambda: FakeConn())
     get_query_by_upload_id(1)
 
     normalised = ' '.join(captured['sql'].split()).upper()

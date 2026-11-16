@@ -17,6 +17,10 @@ def test_get_items_by_query_id(monkeypatch):
     rows = [("t", "u", "i", json.dumps({"title": "t", "url": "u", "image_url": "i", "foo": "bar"}))]
 
     class FakeConn:
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
         def __init__(self, rows):
             self._rows = rows
 
@@ -32,7 +36,7 @@ def test_get_items_by_query_id(monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr(mod, "sqlite3", type("S", (), {"connect": lambda db: FakeConn(rows)}))
+    monkeypatch.setattr(mod, "db_connection", lambda: FakeConn(rows))
     res = mod.get_items_by_query_id(1)
     assert len(res) == 1
     assert isinstance(res[0], SearchItem)
@@ -43,6 +47,10 @@ def test_insert_search_items_records(monkeypatch):
     recorded = {}
 
     class FakeConn:
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
         def __init__(self):
             self._data = None
 
@@ -59,7 +67,7 @@ def test_insert_search_items_records(monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr(mod, "sqlite3", type("S", (), {"connect": lambda db: FakeConn()}))
+    monkeypatch.setattr(mod, "db_connection", lambda: FakeConn())
     items = [SearchItem(title="t", url="u", image_url=None, data={"a": 1}), {"title": "t2", "url": "u2", "image_url": None}]
     mod.insert_search_items(5, items)
     assert 'data' in recorded
@@ -70,6 +78,10 @@ def test_insert_search_items_stores_clip_embedding_blob(monkeypatch):
     recorded = {}
 
     class FakeConn:
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
         def cursor(self):
             return self
 
@@ -83,7 +95,7 @@ def test_insert_search_items_stores_clip_embedding_blob(monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr(mod, "sqlite3", type("S", (), {"connect": lambda db: FakeConn()}))
+    monkeypatch.setattr(mod, "db_connection", lambda: FakeConn())
     item = SearchItem(title="t", url="u", clip_embedding=[0.5] * 512, embedding=[0.1] * 768)
     mod.insert_search_items(5, [item])
 
@@ -102,6 +114,10 @@ def test_get_items_by_query_id_hydrates_clip_embedding(monkeypatch):
     clip_blob = np.asarray([0.25] * 512, dtype=np.float32).tobytes()
 
     class FakeConn:
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
         def cursor(self):
             return self
 
@@ -114,7 +130,7 @@ def test_get_items_by_query_id_hydrates_clip_embedding(monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr(mod, "sqlite3", type("S", (), {"connect": lambda db: FakeConn()}))
+    monkeypatch.setattr(mod, "db_connection", lambda: FakeConn())
     items = mod.get_items_by_query_id(1)
 
     assert items[0].embedding is None
@@ -124,6 +140,10 @@ def test_get_items_by_query_id_hydrates_clip_embedding(monkeypatch):
 
 def test_get_item_urls_for_query(monkeypatch):
     class FakeConn:
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
         def cursor(self):
             return self
 
@@ -136,5 +156,5 @@ def test_get_item_urls_for_query(monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr(mod, "sqlite3", type("S", (), {"connect": lambda db: FakeConn()}))
+    monkeypatch.setattr(mod, "db_connection", lambda: FakeConn())
     assert mod.get_item_urls_for_query(3) == {"https://a", "https://b"}

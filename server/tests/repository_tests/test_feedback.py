@@ -10,6 +10,10 @@ def test_rerankfeedback_from_row():
 
 def test_get_feedback_for_upload_monkeypatch(monkeypatch):
     class FakeConn:
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
         def cursor(self):
             return self
 
@@ -22,7 +26,7 @@ def test_get_feedback_for_upload_monkeypatch(monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr(mod, 'sqlite3', type('S', (), {'connect': lambda db: FakeConn()}))
+    monkeypatch.setattr(mod, 'db_connection', lambda: FakeConn())
     res = get_feedback_for_upload(1)
     assert len(res) == 2
     assert res[0].feedback_type in ('MORE', 'LESS')
