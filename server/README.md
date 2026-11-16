@@ -108,7 +108,6 @@ Trait feedback replaces the earlier free-text chips with a closed vocabulary:
 | `length` | `"long maxi length garment"` / `"cropped short length garment"` |
 | `pattern` | `"floral printed pattern"` / `"plain solid colour"` |
 | `fit` | `"oversized loose fit"` / `"tight fitted silhouette"` |
-| `material` | `"knitted textured fabric"` / `"smooth woven fabric"` (beta) |
 
 Each trait is a 512-d FashionCLIP axis built once from its prompt pair:
 

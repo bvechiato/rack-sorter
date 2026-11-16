@@ -76,5 +76,4 @@ export const TRAITS: TraitOption[] = [
   { key: 'length', label: 'Length' },
   { key: 'pattern', label: 'Pattern' },
   { key: 'fit', label: 'Fit' },
-  { key: 'material', label: 'Material', beta: true },
 ];
