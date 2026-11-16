@@ -4,6 +4,7 @@ export function useUIState() {
   const [panelOpen, setPanelOpen] = useState<boolean>(false);
   const [preferencesOpen, setPreferencesOpen] = useState<boolean>(false);
   const [traitSheetUrl, setTraitSheetUrl] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const togglePanel = () => setPanelOpen(prev => !prev);
   const closePanel = () => setPanelOpen(false);
@@ -13,11 +14,15 @@ export function useUIState() {
   const openTraitSheet = (itemUrl: string) => setTraitSheetUrl(itemUrl);
   const closeTraitSheet = () => setTraitSheetUrl(null);
 
+  const showError = (message: string) => setErrorMessage(message);
+  const clearError = () => setErrorMessage(null);
+
   return {
     state: {
       panelOpen,
       preferencesOpen,
       traitSheetUrl,
+      errorMessage,
     },
     actions: {
       togglePanel,
@@ -27,6 +32,8 @@ export function useUIState() {
       setPreferencesOpen,
       openTraitSheet,
       closeTraitSheet,
+      showError,
+      clearError,
     },
   };
 }

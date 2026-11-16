@@ -155,7 +155,34 @@
 input[type="range"] { width: 100%; accent-color: var(--accent); margin: 6px 0; }
 
 #loading { text-align: center; color: var(--accent); display: none; font-weight: 600; margin: 24px 0; font-size: 14px; }
-.loading { text-align: center; color: var(--accent); display: block; font-weight: 600; margin: 24px 0; font-size: 14px; }
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 90vw;
+  padding: 10px 14px;
+  background: #1c1c21;
+  border: 1px solid #2e2e38;
+  border-radius: 10px;
+  color: #e4e4e7;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.toast-error { border-color: #ff2d55; color: #ff7089; }
+.toast-close {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+}
 .loading--scrape {
   display: flex;
   flex-direction: column;
