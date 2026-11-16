@@ -275,8 +275,6 @@ export interface components {
         TraitProfileResponse: {
             /** Count */
             count: number;
-            /** Top N */
-            top_n: number;
             /** Mean */
             mean: {
                 [key: string]: number;
@@ -287,10 +285,6 @@ export interface components {
             };
             /** Anchor */
             anchor: {
-                [key: string]: number;
-            };
-            /** Top */
-            top: {
                 [key: string]: number;
             };
             /** Item */

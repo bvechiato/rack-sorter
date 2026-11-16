@@ -121,7 +121,21 @@ function App() {
 
       {searchState.feedbacksSinceFetch > 0 && (
         <div className="feedback-counter-notice">
-          {3 - searchState.feedbacksSinceFetch} more feedback{3 - searchState.feedbacksSinceFetch === 1 ? '' : 's'} until new items are fetched
+          <span className="feedback-dots" aria-hidden="true">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <span key={i} className={`feedback-dot ${i < searchState.feedbacksSinceFetch ? 'filled' : ''}`} />
+            ))}
+          </span>
+          <span>
+            {3 - searchState.feedbacksSinceFetch} more feedback{3 - searchState.feedbacksSinceFetch === 1 ? '' : 's'} until new items are fetched
+          </span>
+        </div>
+      )}
+
+      {searchState.loading && searchState.products.length > 0 && (
+        <div className="refresh-notice" role="status" aria-live="polite">
+          <span className="loading-spinner loading-spinner--sm" aria-hidden="true" />
+          <span>Fetching new items and reranking…</span>
         </div>
       )}
 
