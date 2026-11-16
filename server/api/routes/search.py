@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from api.models import (
     BatchRerankRequest,
@@ -10,7 +10,6 @@ from api.models import (
     RerankRequest,
     TraitProfileResponse,
 )
-from api.errors import ServerError
 from model.mapper import to_ItemResponse
 from model.repository.search_items import SearchItem
 from service.scraper import scrape_vinted_pool, build_query_params
@@ -50,7 +49,7 @@ async def rerank_pool(request: RerankRequest):
             request.fetch_more,
         )
     except Exception as e:
-        return ServerError(message=f"Reranking crashed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Reranking crashed: {str(e)}")
 
 
 @router.post("/rerank_batch")
@@ -59,7 +58,7 @@ async def rerank_batch(request: BatchRerankRequest):
     try:
         return apply_feedback_and_rerank(request.upload_id, request.feedback, request.fetch_more)
     except Exception as e:
-        return ServerError(message=f"Reranking crashed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Reranking crashed: {str(e)}")
 
 
 @router.get("/trait-profile")
@@ -68,4 +67,4 @@ async def trait_profile(upload_id: int, item_url: str | None = None) -> TraitPro
     try:
         return TraitProfileResponse(**build_trait_profile(upload_id, item_url))
     except Exception as e:
-        return ServerError(message=f"Trait profile failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Trait profile failed: {str(e)}")

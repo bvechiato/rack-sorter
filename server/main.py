@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from config import CORS_ORIGINS
 
 from api.routes import analyze, health, search
 
@@ -33,7 +34,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="RackSorter Unified Engine", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o for o in CORS_ORIGINS.split(",") if o],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
