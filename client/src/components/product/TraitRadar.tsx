@@ -57,7 +57,7 @@ function polygon(profile: TraitProfile, values: Record<string, number> | null | 
 const TraitRadar: React.FC<TraitRadarProps> = ({ profile, label = 'your photo' }) => {
   const hasItem = Boolean(profile.item);
   const description = [
-    `Trait axes for ${profile.count} candidates, top ${profile.top_n}.`,
+    `Trait axes for ${profile.count} candidates.`,
     hasItem ? 'The clicked item is outlined.' : '',
   ].filter(Boolean).join(' ');
 
@@ -93,9 +93,6 @@ const TraitRadar: React.FC<TraitRadarProps> = ({ profile, label = 'your photo' }
         {/* Where the uploaded photo sits on each axis. */}
         <polygon className="trait-radar-anchor" points={polygon(profile, profile.anchor)} />
 
-        {/* What the ranker currently prefers: the mean profile of the visible top N. */}
-        <polygon className="trait-radar-top" points={polygon(profile, profile.top)} />
-
         {hasItem && (
           <>
             <polygon className="trait-radar-item" points={polygon(profile, profile.item)} />
@@ -110,7 +107,6 @@ const TraitRadar: React.FC<TraitRadarProps> = ({ profile, label = 'your photo' }
       </svg>
 
       <figcaption className="trait-radar-legend">
-        <span><i className="swatch swatch-top" /> Top {profile.top_n}</span>
         <span><i className="swatch swatch-anchor" /> {label}</span>
         {hasItem && <span><i className="swatch swatch-item" /> Clicked</span>}
         <span className="trait-radar-hint">centre = −3σ · ring = mean · edge = +3σ</span>

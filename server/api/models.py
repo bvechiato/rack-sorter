@@ -60,9 +60,7 @@ class TraitProfileResponse(BaseModel):
     """Raw axis projections plus the pool spread the scorer standardises against."""
 
     count: int
-    top_n: int
     mean: dict[str, float]
     std: dict[str, float]
     anchor: dict[str, float]
-    top: dict[str, float]
     item: Optional[dict[str, float]] = None
