@@ -1,7 +1,9 @@
-from pydantic import BaseModel
 from typing import Literal, Optional
 
+from pydantic import BaseModel
+
 from service.traits import Trait
+
 
 class FetchInitialRequest(BaseModel):
     uploadId: int
@@ -12,6 +14,7 @@ class FetchInitialRequest(BaseModel):
     maxPrice: str
     selectedConditions: str
 
+
 class ItemResponse(BaseModel):
     title: str
     url: str
@@ -19,10 +22,12 @@ class ItemResponse(BaseModel):
     similarity_score: float
     rerank_score: Optional[float] = None
 
+
 class FetchInitialResponse(BaseModel):
     pool: list[ItemResponse]
     # Items appended by the last rerank's extra catalogue page (0 on a fresh search).
     new_items: int = 0
+
 
 class AnalyseResponse(BaseModel):
     archetype: str
@@ -31,9 +36,11 @@ class AnalyseResponse(BaseModel):
     colour_classified_tags: list[str]
     category_archetype: str
 
+
 class AnalyseAnchorImageResponse(BaseModel):
     upload_id: int
     analysis: AnalyseResponse
+
 
 class RerankRequest(BaseModel):
     upload_id: int
@@ -43,11 +50,14 @@ class RerankRequest(BaseModel):
     # Pull one extra catalogue page before ranking; disable for offline/debug replays.
     fetch_more: bool = True
 
+
 class FeedbackEvent(BaseModel):
     """One queued trait/visual choice, sent when the sheet is dismissed with Done."""
+
     item_url: str
     feedback_type: Literal["MORE", "LESS"]
     concept: Optional[Trait] = None
+
 
 class BatchRerankRequest(BaseModel):
     upload_id: int
@@ -55,6 +65,7 @@ class BatchRerankRequest(BaseModel):
     # client refreshes exactly once no matter how many traits were queued.
     feedback: list[FeedbackEvent]
     fetch_more: bool = True
+
 
 class TraitProfileResponse(BaseModel):
     """Raw axis projections plus the pool spread the scorer standardises against."""

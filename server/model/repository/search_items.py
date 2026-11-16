@@ -1,9 +1,12 @@
 import json
 import logging
-from typing import List, Iterable, Union
-from .db import db_connection
+from typing import Iterable, List, Union
+
 import numpy as np
+
 from dtos import SearchItem
+
+from .db import db_connection
 
 logger = logging.getLogger(__name__)
 

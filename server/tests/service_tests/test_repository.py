@@ -1,6 +1,9 @@
 from types import SimpleNamespace
-import service.repository as repo
+
 import pytest
+
+import service.repository as repo
+
 
 def test_get_upload_bytes_by_id_reads_file(tmp_path, monkeypatch):
     # given
@@ -19,6 +22,7 @@ def test_get_upload_bytes_by_id_reads_file(tmp_path, monkeypatch):
 
     assert result == content
 
+
 def test_get_results_by_upload_id_returns_items(monkeypatch):
     items = [SimpleNamespace(title="t1", url="u1"), SimpleNamespace(title="t2", url="u2")]
 
@@ -29,10 +33,11 @@ def test_get_results_by_upload_id_returns_items(monkeypatch):
     res = repo.get_results_by_upload_id(7)
     assert res == items
 
+
 def test_get_upload_bytes_by_id_throws_if_file_missing(tmp_path, monkeypatch):
     # given
     uploads_dir = tmp_path / "uploads"
-    uploads_dir.mkdir() # Empty folder, file 'missing.jpg' is not created here
+    uploads_dir.mkdir()  # Empty folder, file 'missing.jpg' is not created here
     fname = "missing.jpg"
 
     monkeypatch.setattr(repo, "UPLOADS_PATH", str(uploads_dir))
@@ -41,8 +46,9 @@ def test_get_upload_bytes_by_id_throws_if_file_missing(tmp_path, monkeypatch):
     # when / then
     with pytest.raises(FileNotFoundError) as exc_info:
         repo.get_upload_bytes_by_id(1)
-        
+
     assert "Image file missing from disk" in str(exc_info.value)
+
 
 def test_get_results_by_upload_id_resolves_the_newest_query(monkeypatch):
     # After two searches for one upload, the newest query's pool must win.
@@ -53,6 +59,7 @@ def test_get_results_by_upload_id_resolves_the_newest_query(monkeypatch):
     monkeypatch.setattr(repo, "get_items_by_query_id", lambda qid: newest if qid == 99 else older)
 
     assert repo.get_results_by_upload_id(7) == newest
+
 
 def test_get_results_by_upload_id_when_query_does_not_exist(monkeypatch):
     # given: mock returns None instead of a Query object

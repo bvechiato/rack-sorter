@@ -77,9 +77,7 @@ def test_fetch_more_stops_at_the_page_cap(monkeypatch):
 
 def test_fetch_more_without_query_params_is_a_logged_noop(monkeypatch):
     _stub_query(monkeypatch, params=None)
-    monkeypatch.setattr(
-        pool, "scrape_vinted_pool", lambda params: pytest.fail("nothing to scrape without params")
-    )
+    monkeypatch.setattr(pool, "scrape_vinted_pool", lambda params: pytest.fail("nothing to scrape without params"))
 
     assert pool.fetch_more_for_upload(42) == 0
 
@@ -88,9 +86,7 @@ def test_fetch_more_duplicate_page_adds_nothing(monkeypatch):
     _stub_query(monkeypatch)
     monkeypatch.setattr(pool, "get_item_urls_for_query", lambda query_id: {"a"})
     monkeypatch.setattr(pool, "scrape_vinted_pool", lambda params: {_item("a")})
-    monkeypatch.setattr(
-        pool, "insert_search_items", lambda query_id, items: pytest.fail("no new rows to insert")
-    )
+    monkeypatch.setattr(pool, "insert_search_items", lambda query_id, items: pytest.fail("no new rows to insert"))
 
     assert pool.fetch_more_for_upload(42) == 0
     # The cursor still moves so the next feedback asks for a different page.

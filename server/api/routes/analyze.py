@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from api.models import AnalyseAnchorImageResponse, AnalyseResponse
-from service.identifier import extract_tags_from_image
 from service.eval_db import save_user_upload
+from service.identifier import extract_tags_from_image
 
 router = APIRouter()
 

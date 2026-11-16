@@ -1,6 +1,8 @@
 import logging
-from .db import db_connection
+
 from dtos import RerankFeedback
+
+from .db import db_connection
 
 logger = logging.getLogger(__name__)
 

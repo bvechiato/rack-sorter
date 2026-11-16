@@ -1,6 +1,8 @@
-from .db import db_connection
-from dtos import QueryDTO
 import logging
+
+from dtos import QueryDTO
+
+from .db import db_connection
 
 logger = logging.getLogger(__name__)
 

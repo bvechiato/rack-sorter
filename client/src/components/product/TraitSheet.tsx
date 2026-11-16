@@ -13,8 +13,6 @@ interface TraitSheetProps {
   onApply: (picks: Partial<Record<Trait, Direction>>) => Promise<void>;
   /** Traits already applied to this item, so reopening the sheet reflects them. */
   appliedPicks?: Partial<Record<Trait, Direction>>;
-  /** Items appended by the last feedback's extra catalogue page. */
-  newItems?: number;
   /** Debug view of the scorer's current axis positions. */
   profile?: TraitProfile | null;
   profileError?: string | null;
@@ -25,7 +23,6 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
   item,
   onApply,
   appliedPicks,
-  newItems = 0,
   profile,
   profileError,
   onClose,

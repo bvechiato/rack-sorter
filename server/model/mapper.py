@@ -1,4 +1,5 @@
-from api.models import *
+from api.models import ItemResponse
+
 
 def to_ItemResponse(items) -> list[ItemResponse]:
     serialized = []

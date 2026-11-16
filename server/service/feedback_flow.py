@@ -5,7 +5,7 @@ Kept out of the HTTP layer so routers stay thin and the flow is reusable/testabl
 
 import logging
 
-from api.models import FetchInitialResponse, FeedbackEvent
+from api.models import FeedbackEvent, FetchInitialResponse
 from model.mapper import to_ItemResponse
 from model.repository.feedback import get_feedback_for_upload, insert_rerank_feedback
 from service.pool import fetch_more_for_upload
