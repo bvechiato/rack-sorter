@@ -30,7 +30,7 @@ export function useImageAnalysis() {
 
       // Store tags for weight sliders
       setSuggestedTags(analysis.classified_tags || []);
-    } catch (err) {
+    } catch {
       throw new Error('Connection failure to local Python host engine');
     } finally {
       setLoading(false);

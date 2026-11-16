@@ -66,8 +66,6 @@ function App() {
     if (uiState.traitSheetUrl) {
       searchActions.loadTraitProfile(imageState.uploadId, uiState.traitSheetUrl);
     }
-    // `loadTraitProfile` is recreated per render; the sheet/upload identity is the trigger.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uiState.traitSheetUrl, imageState.uploadId]);
 
   return (
@@ -133,7 +131,6 @@ function App() {
         <TraitSheet
           item={tunedItem}
           appliedPicks={searchState.traitPicks[tunedItem.url]}
-          newItems={searchState.newItems}
           profile={searchState.traitProfile}
           profileError={searchState.profileError}
           onClose={uiActions.closeTraitSheet}

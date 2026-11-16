@@ -1,6 +1,7 @@
 import json
-from typing import List, Any, Dict, Optional, Tuple
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+
 
 @dataclass(eq=False)
 class SearchItem:
@@ -20,11 +21,7 @@ class SearchItem:
         image_url = d.get("image_url")
         embedding = d.get("embedding")
         clip_embedding = d.get("clip_embedding")
-        data = {
-            k: v
-            for k, v in d.items()
-            if k not in {"title", "url", "image_url", "embedding", "clip_embedding"}
-        }
+        data = {k: v for k, v in d.items() if k not in {"title", "url", "image_url", "embedding", "clip_embedding"}}
         return SearchItem(
             title=title,
             url=url,
@@ -50,6 +47,7 @@ class SearchItem:
     def from_json(s: str) -> "SearchItem":
         return SearchItem.from_dict(json.loads(s))
 
+
 @dataclass
 class RerankFeedback:
     item_url: str
@@ -63,6 +61,7 @@ class RerankFeedback:
         else:
             return RerankFeedback(item_url=row[0], feedback_type=row[1])
 
+
 @dataclass
 class QueryDTO:
     id: int
@@ -73,6 +72,7 @@ class QueryDTO:
     def from_row(row: Tuple) -> "QueryDTO":
         return QueryDTO(id=row[0], search_keyword=row[1], query_params=row[2])
 
+
 @dataclass
 class UserUpload:
     id: int
@@ -81,4 +81,3 @@ class UserUpload:
     @staticmethod
     def from_row(row: Tuple) -> "UserUpload":
         return UserUpload(id=row[0], image_path=row[1])
-

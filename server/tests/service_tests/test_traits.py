@@ -144,10 +144,7 @@ def test_total_adjustment_is_clamped_per_item():
         for i in range(10)
     ]
     items.extend(extra)
-    events = [
-        RerankFeedback(item_url=item.url, feedback_type="MORE", concept="sleeves")
-        for item in extra
-    ]
+    events = [RerankFeedback(item_url=item.url, feedback_type="MORE", concept="sleeves") for item in extra]
     stats = _apply(items, events)
 
     by_url = {item.url: item for item in items}

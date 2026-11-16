@@ -1,14 +1,15 @@
+import logging
 import os
 from contextlib import asynccontextmanager
-import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from config import CORS_ORIGINS
 
 from api.routes import analyze, health, search
+from config import CORS_ORIGINS
+
 
 # Keep uvicorn's INFO logs, but drop the repetitive liveness/model-discovery probes
 # that OpenCode and other local tools send to every localhost port.

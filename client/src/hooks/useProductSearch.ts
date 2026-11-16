@@ -44,7 +44,7 @@ export function useProductSearch() {
       setTraitPicks({});
       setNewItems(0);
       clearTraitProfile();
-    } catch (err) {
+    } catch {
       throw new Error('Failed fetching items with the chosen keyword.');
     } finally {
       setLoading(false);

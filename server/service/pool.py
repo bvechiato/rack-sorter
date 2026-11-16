@@ -6,14 +6,15 @@ scoring. The scrape is deliberately fail-soft at the call site — losing the fe
 would be worse than skipping a page.
 """
 
-import threading
 import logging
+import threading
 from typing import Dict
 
 from model.repository.query import get_query_by_upload_id
 from model.repository.search_items import get_item_urls_for_query, insert_search_items
 from service.rank import process_and_rank_pool
 from service.scraper import scrape_vinted_pool
+
 logger = logging.getLogger(__name__)
 
 # Page 1 arrives with `/fetch_initial`; feedback walks 2, 3, … until the cap.
@@ -53,10 +54,7 @@ def fetch_more_for_upload(upload_id: int) -> int:
         scraped = scrape_vinted_pool(params)
         known = get_item_urls_for_query(query.id)
         fresh = {item for item in scraped if item.url not in known}
-        logger.info(
-            f"Fetch-more page {page} for upload {upload_id}: "
-            f"{len(scraped)} scraped, {len(fresh)} unseen"
-        )
+        logger.info(f"Fetch-more page {page} for upload {upload_id}: {len(scraped)} scraped, {len(fresh)} unseen")
 
         if not fresh:
             _page_cursor[upload_id] = page

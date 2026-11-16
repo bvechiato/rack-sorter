@@ -11,8 +11,8 @@ import numpy as np
 
 from model.repository.feedback import get_feedback_for_upload
 from service import traits
-from service.rerank import _assert_same_space, _unit, get_anchor_clip_embedding, rerank
 from service.repository import get_results_by_upload_id
+from service.rerank import _assert_same_space, _unit, get_anchor_clip_embedding, rerank
 
 # Size of the "current results" polygon: the mean trait profile of the visible top.
 TOP_N = 10
