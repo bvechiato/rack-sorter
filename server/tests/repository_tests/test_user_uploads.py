@@ -1,5 +1,5 @@
-from model.repository.user_uploads import UserUpload, get_upload_by_id
 import model.repository.user_uploads as mod
+from model.repository.user_uploads import UserUpload, get_upload_by_id
 
 
 def test_userupload_from_row():

@@ -1,7 +1,10 @@
 import logging
+
 import numpy as np
-from .db import db_connection
+
 from dtos import UserUpload
+
+from .db import db_connection
 
 logger = logging.getLogger(__name__)
 
