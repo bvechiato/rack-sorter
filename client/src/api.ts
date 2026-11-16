@@ -15,7 +15,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
       throw new Error('Backend server not running.');
     }
     const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || `API error: ${res.status}`);
+    throw new Error(error.detail || error.message || `API error: ${res.status}`);
   }
   return res.json() as Promise<T>;
 }
@@ -38,7 +38,6 @@ export async function fetchInitial(data: FetchInitialRequest): Promise<FetchInit
 }
 
 export async function rerank(data: RerankRequest): Promise<FetchInitialResponse> {
-  // Same envelope as `/fetch_initial`, plus `new_items` for the extra page.
   const res = await fetch(`${API_HOST}/rerank`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

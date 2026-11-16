@@ -11,7 +11,7 @@ from .repository import get_upload_bytes_by_id
 from model.repository.user_uploads import get_embedding_by_upload_id, insert_embedding_for_upload
 from service.identifier import get_single_clip_embedding
 logger = logging.getLogger(__name__)
-MODEL_ID = "facebook/dinov2-base"
+from config import DINO_MODEL_ID as MODEL_ID
 
 # Lazily loaded (on first use) so importing this module never downloads a model.
 processor = None

@@ -1,7 +1,6 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File
 
 from api.models import AnalyseAnchorImageResponse, AnalyseResponse
-from api.errors import ServerError
 from service.identifier import extract_tags_from_image
 from service.eval_db import save_user_upload
 
@@ -19,4 +18,4 @@ async def analyze_anchor_image(file: UploadFile = File(...)):
             analysis=AnalyseResponse(**analysis_payload),
         )
     except Exception as e:
-        return ServerError(message=f"Analysis crashed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Analysis crashed: {str(e)}")

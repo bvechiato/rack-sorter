@@ -6,7 +6,7 @@ from transformers import CLIPProcessor, CLIPModel
 import numpy as np
 from service.static.CONSTANTS import CANDIDATE_TAGS, COLOUR_MAP, CATEGORY_HIERARCHY
 logger = logging.getLogger(__name__)
-MODEL_ID = "patrickjohncyh/fashion-clip"
+from config import CLIP_MODEL_ID as MODEL_ID
 
 # Lazily loaded (on first use) so importing this module never downloads a model.
 # `model`/`processor` are module globals so tests can monkeypatch them directly.

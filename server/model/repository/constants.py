@@ -1,6 +1,6 @@
-DB = "search_eval.db"
+from config import DB_PATH, UPLOADS_PATH
 
-UPLOADS_PATH = "service/static/uploads"
+DB = DB_PATH
 
 CREATE_TABLES_QUERY = """
 CREATE TABLE IF NOT EXISTS user_uploads (
