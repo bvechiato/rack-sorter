@@ -11,6 +11,10 @@ def test_userupload_from_row():
 
 def test_get_upload_by_id_monkeypatch(monkeypatch):
     class FakeConn:
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
         def cursor(self):
             return self
 
@@ -23,6 +27,6 @@ def test_get_upload_by_id_monkeypatch(monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr(mod, 'sqlite3', type('S', (), {'connect': lambda db: FakeConn()}))
+    monkeypatch.setattr(mod, 'db_connection', lambda: FakeConn())
     u = get_upload_by_id(1)
     assert u.id == 11
