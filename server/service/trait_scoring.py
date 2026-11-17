@@ -101,7 +101,7 @@ def apply_trait_modifiers(
             stats["clamped"] += 1
         item.rerank_score = (item.rerank_score or 0.0) + clamped
 
-    logger.info(
+    logger.debug(
         "Trait feedback applied: %d/%d events, superseded=%d, degenerate=%d, missing_clicked=%d, items_without_vector=%d, clamped=%d",
         stats["applied"],
         stats["events"],

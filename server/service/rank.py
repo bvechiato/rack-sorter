@@ -33,7 +33,7 @@ def get_dino_model():
     global model
     if model is None:
         model = AutoModel.from_pretrained(MODEL_ID)
-        logger.info("Initialised local DINOv2 for vector extraction")
+        logger.debug("Initialised local DINOv2 for vector extraction")
     return model
 
 

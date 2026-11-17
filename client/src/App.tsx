@@ -111,9 +111,31 @@ function App() {
         />
       )}
 
-      {!searchState.loading && searchState.newItems > 0 && (
-        <div className="new-items-notice">
-          +{searchState.newItems} new item{searchState.newItems === 1 ? '' : 's'} from a wider search
+      {!searchState.fetchingMore && searchState.products.length > 0 && (
+        <div className="fixed-status-bar" role="status" aria-live="polite">
+          <svg className="feedback-progress" viewBox="0 0 24 24" aria-hidden="true">
+            <circle className="feedback-progress-track" cx="12" cy="12" r="9" />
+            <circle
+              className="feedback-progress-fill"
+              cx="12"
+              cy="12"
+              r="9"
+              style={{
+                strokeDasharray: 56.55,
+                strokeDashoffset: 56.55 * (1 - searchState.feedbacksSinceFetch / 3),
+              }}
+            />
+          </svg>
+          <span>
+            rate another {3 - searchState.feedbacksSinceFetch} item{3 - searchState.feedbacksSinceFetch === 1 ? '' : 's'} to rerank
+          </span>
+        </div>
+      )}
+
+      {searchState.fetchingMore && (
+        <div className={`fixed-status-bar is-refreshing`} role="status" aria-live="polite">
+          <span className="loading-spinner loading-spinner--sm" aria-hidden="true" />
+          <span>Fetching more and reranking…</span>
         </div>
       )}
 

@@ -13,6 +13,11 @@ export function useProductSearch() {
   const [loading, setLoading] = useState(false);
   const [traitPicks, setTraitPicks] = useState<Record<string, TraitPicks>>({});
   const [newItems, setNewItems] = useState(0);
+  // Feedbacks accumulated since the last catalogue-page fetch. A new page is
+  // pulled only every FETCH_EVERY feedbacks, so most taps stay cheap.
+  const [feedbacksSinceFetch, setFeedbacksSinceFetch] = useState(0);
+  const [fetchingMore, setFetchingMore] = useState(false);
+  const FETCH_EVERY = 3;
 
   const traitProfile = useTraitProfile();
 
@@ -43,6 +48,7 @@ export function useProductSearch() {
       setProducts(poolData.pool || []);
       setTraitPicks({});
       setNewItems(0);
+      setFeedbacksSinceFetch(0);
       clearTraitProfile();
     } catch {
       throw new Error('Failed fetching items with the chosen keyword.');
@@ -56,13 +62,17 @@ export function useProductSearch() {
       throw new Error('Missing upload id');
     }
 
+    const eventsCount = 1;
+    const willFetch = feedbacksSinceFetch + eventsCount >= FETCH_EVERY;
+
     setLoading(true);
+    setFetchingMore(willFetch);
 
     try {
       const rankedData = await rerankBatch({
         upload_id: uploadId,
         feedback: [{ item_url: itemUrl, feedback_type: feedbackType, concept: concept ?? null }],
-        fetch_more: true,
+        fetch_more: willFetch,
       });
 
       setProducts(rankedData.pool || []);
@@ -76,10 +86,14 @@ export function useProductSearch() {
         }));
       }
 
-      await loadTraitProfile(uploadId, itemUrl);
+      setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
+
+      // Profile is only needed for the Tune sheet's debug radar; it refreshes on
+      // open and after Done, so skip the extra /trait-profile call here.
     } catch (err) {
       throw err instanceof Error ? err : new Error('Vector calculation error');
     } finally {
+      setFetchingMore(false);
       setLoading(false);
     }
   };
@@ -96,10 +110,15 @@ export function useProductSearch() {
 
     setLoading(true);
     try {
+      const eventsCount = feedback.length;
+      const willFetch = feedbacksSinceFetch + eventsCount >= FETCH_EVERY;
+
+      setFetchingMore(willFetch);
+
       const rankedData = await rerankBatch({
         upload_id: uploadId,
         feedback,
-        fetch_more: true,
+        fetch_more: willFetch,
       });
 
       setProducts(rankedData.pool || []);
@@ -107,10 +126,13 @@ export function useProductSearch() {
       setNewItems(rankedData.new_items ?? 0);
       setTraitPicks(prev => ({ ...prev, [itemUrl]: picks }));
 
+      setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
+
       await loadTraitProfile(uploadId, itemUrl);
     } catch (err) {
       throw err instanceof Error ? err : new Error('Vector calculation error');
     } finally {
+      setFetchingMore(false);
       setLoading(false);
     }
   };
@@ -122,6 +144,8 @@ export function useProductSearch() {
       loading,
       traitPicks,
       newItems,
+      feedbacksSinceFetch,
+      fetchingMore,
       traitProfile: traitProfile.state.traitProfile,
       profileError: traitProfile.state.profileError,
     },
