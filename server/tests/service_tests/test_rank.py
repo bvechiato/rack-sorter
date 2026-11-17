@@ -34,8 +34,6 @@ class _FakeClipModel:
 
 
 def test_pool_ranking_accepts_a_stored_list_anchor(monkeypatch):
-    # `get_embedding_by_upload_id` returns a plain list on every call after the
-    # first ingest. The batched inference path must still handle a list anchor.
     monkeypatch.setattr(rank, "get_embedding_by_upload_id", lambda upload_id: [1.0, 0.0])
     monkeypatch.setattr(rank, "fetch_image_bytes_from_item", lambda item: b"image")
     monkeypatch.setattr(rank, "Image", SimpleNamespace(open=lambda *a, **k: _FakeImage()))

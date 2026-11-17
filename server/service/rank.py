@@ -41,17 +41,16 @@ def get_dino_model():
 
 def get_clip_processor():
     from service.identifier import get_clip_processor as _get
-
     return _get()
 
 
 def get_clip_model():
     from service.identifier import get_clip_model as _get
-
     return _get()
 
 
-def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> list[SearchItem]:
+def _anchor_array(upload_id: int) -> np.ndarray:
+    """Load (or compute) the anchor DINO embedding and return it as a 2-D array."""
     try:
         anchor_features = get_embedding_by_upload_id(upload_id)
         if anchor_features is None:
@@ -60,61 +59,82 @@ def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> lis
         anchor_bytes = get_upload_bytes_by_id(upload_id)
         anchor_features = process_and_normalise(anchor_bytes)
         insert_embedding_for_upload(upload_id, anchor_features.squeeze().numpy().tolist())
+    arr = anchor_features.numpy() if hasattr(anchor_features, "numpy") else np.asarray(anchor_features, dtype=float)
+    return arr.reshape(1, -1)
 
-    anchor_array = (
-        anchor_features.numpy() if hasattr(anchor_features, "numpy") else np.asarray(anchor_features, dtype=float)
-    ).reshape(1, -1)
 
-    # Phase 1: download all images (sequential, to be polite to Vinted).
-    downloaded: list[tuple[SearchItem, bytes]] = []
+def _download_images(scraped_items):
+    """Fetch image bytes for every item; skip items whose download fails."""
+    downloaded = []
     for item in scraped_items:
         image = fetch_image_bytes_from_item(item)
         if image is None:
             logger.warning("Skipping item, image not found")
             continue
         downloaded.append((item, image))
+    return downloaded
 
-    if not downloaded:
-        return []
 
-    ranked_pool: list[SearchItem] = []
+def _run_dino(downloaded, anchor_array):
+    """Batched DINO inference: sets similarity_score and embedding on each item.
 
-    # Phase 2: batched DINO inference.
+    Returns the list of items that were successfully scored.
+    """
     proc = get_dino_processor()
     mdl = get_dino_model()
+    successful = []
     for start in range(0, len(downloaded), BATCH_SIZE):
         batch = downloaded[start:start + BATCH_SIZE]
-        images = [Image.open(io.BytesIO(blob)).convert("L").convert("RGB") for (_, blob) in batch]
+        try:
+            images = [Image.open(io.BytesIO(blob)).convert("L").convert("RGB") for (_, blob) in batch]
+            inputs = proc(images=images, return_tensors="pt")
+            with torch.inference_mode():
+                outputs = mdl(**inputs)
+                features = outputs.pooler_output
+                features = features / features.norm(dim=-1, keepdim=True)
+            for i, (item, _blob) in enumerate(batch):
+                feat = features[i]
+                item.similarity_score = float(cosine_similarity(anchor_array, feat.reshape(1, -1))[0][0])
+                item.embedding = feat.squeeze().numpy().tolist()
+                successful.append(item)
+        except Exception as e:
+            logger.warning("DINO batch failed: %s", e)
+    return successful
+
+
+def _run_clip(successful, downloaded):
+    """Batched FashionCLIP inference: sets clip_embedding on each item."""
+    by_item = {item: blob for item, blob in downloaded}
+    proc = get_clip_processor()
+    model = get_clip_model()
+    items = successful
+    for start in range(0, len(items), BATCH_SIZE):
+        batch_items = items[start:start + BATCH_SIZE]
+        batch = [(it, by_item[it]) for it in batch_items]
+        images = [Image.open(io.BytesIO(blob)).convert("RGB") for (_, blob) in batch]
         inputs = proc(images=images, return_tensors="pt")
         with torch.inference_mode():
-            outputs = mdl(**inputs)
-            features = outputs.pooler_output
-            features = features / features.norm(dim=-1, keepdim=True)
-        for i, (item, _blob) in enumerate(batch):
-            feat = features[i]
-            similarity = cosine_similarity(anchor_array, feat.reshape(1, -1))[0][0]
-            item.similarity_score = float(similarity)
-            item.embedding = feat.squeeze().numpy().tolist()
-            ranked_pool.append(item)
-
-    # Phase 3: batched CLIP inference (FashionCLIP vectors for trait steering).
-    clip_proc = get_clip_processor()
-    clip_model = get_clip_model()
-    for start in range(0, len(downloaded), BATCH_SIZE):
-        batch = downloaded[start:start + BATCH_SIZE]
-        images = [Image.open(io.BytesIO(blob)).convert("RGB") for (_, blob) in batch]
-        inputs = clip_proc(images=images, return_tensors="pt")
-        with torch.inference_mode():
-            features = clip_model.get_image_features(**inputs)
+            features = model.get_image_features(**inputs)
             features = features / features.norm(dim=-1, keepdim=True)
         for i, (item, _blob) in enumerate(batch):
             item.clip_embedding = features[i].squeeze().numpy().tolist()
+
+
+def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> list[SearchItem]:
+    anchor_array = _anchor_array(upload_id)
+
+    downloaded = _download_images(scraped_items)
+    if not downloaded:
+        return []
+
+    ranked_pool = _run_dino(downloaded, anchor_array)
+    _run_clip(ranked_pool, downloaded)
 
     ranked_pool.sort(key=lambda x: x.similarity_score, reverse=True)
     return ranked_pool
 
 
-def process_and_normalise(image_bytes) -> "torch.Tensor":
+def process_and_normalise(image_bytes):
     """Extracts DINOv2 visual features from a single image (used for the anchor)."""
     image_payload = image_bytes.getvalue() if hasattr(image_bytes, "getvalue") else image_bytes
     image = Image.open(io.BytesIO(image_payload)).convert("L").convert("RGB")
