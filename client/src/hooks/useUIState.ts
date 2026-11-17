@@ -1,13 +1,9 @@
 import { useState } from 'react';
 
 export function useUIState() {
-  const [panelOpen, setPanelOpen] = useState<boolean>(false);
   const [preferencesOpen, setPreferencesOpen] = useState<boolean>(false);
   const [traitSheetUrl, setTraitSheetUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const togglePanel = () => setPanelOpen(prev => !prev);
-  const closePanel = () => setPanelOpen(false);
 
   const togglePreferences = () => setPreferencesOpen(prev => !prev);
 
@@ -19,16 +15,12 @@ export function useUIState() {
 
   return {
     state: {
-      panelOpen,
       preferencesOpen,
       traitSheetUrl,
       errorMessage,
     },
     actions: {
-      togglePanel,
-      closePanel,
       togglePreferences,
-      setPanelOpen,
       setPreferencesOpen,
       openTraitSheet,
       closeTraitSheet,

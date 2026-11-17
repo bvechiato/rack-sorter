@@ -39,7 +39,6 @@ function App() {
   const handleScrape = async () => {
     try {
       await searchActions.scrapeProducts(imageState.uploadId, imageState.confirmedKeyword, filters);
-      uiActions.setPanelOpen(false);
     } catch (err: any) {
       uiActions.showError(err.message);
     }
@@ -162,11 +161,6 @@ function App() {
         />
       )}
 
-      <div
-        className={`panel-overlay ${uiState.panelOpen ? 'show' : ''}`}
-        onClick={uiActions.closePanel}
-      />
-
       {uiState.errorMessage && (
         <div className="toast toast-error" role="alert" onClick={uiActions.clearError}>
           {uiState.errorMessage}
@@ -174,14 +168,7 @@ function App() {
         </div>
       )}
 
-      <button
-        className="fab-menu"
-        onClick={uiActions.togglePanel}
-        title="Adjust Weights Matrix"
-      >
-        ☰
-      </button>
-    </div>
+      </div>
     </ErrorBoundary>
   );
 }
