@@ -7,7 +7,9 @@ from service import profile
 
 def _axes():
     # Six 2-d axes; only the first two are asserted on.
-    return {key: np.array([1.0, 0.0]) if i == 0 else np.array([0.0, 1.0]) for i, key in enumerate(profile.traits.TRAIT_KEYS)}
+    return {
+        key: np.array([1.0, 0.0]) if i == 0 else np.array([0.0, 1.0]) for i, key in enumerate(profile.traits.TRAIT_KEYS)
+    }
 
 
 def _items():

@@ -12,3 +12,4 @@ numpy==1.26.4
 scikit-learn==1.5.0
 python-multipart
 pytest
+ruff

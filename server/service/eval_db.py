@@ -1,11 +1,14 @@
 import logging
+import os
 import sqlite3
 import uuid
-import os
-from model.repository.constants import UPLOADS_PATH, DB, CREATE_TABLES_QUERY
+
+from model.repository.constants import CREATE_TABLES_QUERY, DB, UPLOADS_PATH
 from model.repository.query import insert_query
 from model.repository.search_items import insert_search_items
+
 logger = logging.getLogger(__name__)
+
 
 def save_query_to_db(upload_id, keyword, query_params, items):
     query_id = insert_query(upload_id, keyword, query_params)
@@ -13,15 +16,15 @@ def save_query_to_db(upload_id, keyword, query_params, items):
     for it in items:
         if isinstance(it, dict):
             itm = it.copy()
-            embedding = itm.get('embedding')
-            clip_embedding = itm.get('clip_embedding')
+            embedding = itm.get("embedding")
+            clip_embedding = itm.get("clip_embedding")
         else:
             itm = it.to_dict()
-            embedding = getattr(it, 'embedding', None)
-            clip_embedding = getattr(it, 'clip_embedding', None)
+            embedding = getattr(it, "embedding", None)
+            clip_embedding = getattr(it, "clip_embedding", None)
 
-        itm['embedding'] = _as_float_list(embedding)
-        itm['clip_embedding'] = _as_float_list(clip_embedding)
+        itm["embedding"] = _as_float_list(embedding)
+        itm["clip_embedding"] = _as_float_list(clip_embedding)
         sanitized.append(itm)
 
     insert_search_items(query_id, sanitized)
@@ -31,15 +34,16 @@ def _as_float_list(vector):
     if vector is None:
         return None
     try:
-        if hasattr(vector, 'tolist'):
+        if hasattr(vector, "tolist"):
             return [float(x) for x in vector.tolist()]
         return [float(x) for x in vector]
     except Exception:
         return None
 
+
 def save_clip_analysis(cursor, upload_id, tags_dict):
     INSERT_INTO_QUERY = """
-        INSERT INTO clip_tags (upload_id, tag_name, category_type) 
+        INSERT INTO clip_tags (upload_id, tag_name, category_type)
         VALUES (?, ?, ?)
     """
 
@@ -48,6 +52,7 @@ def save_clip_analysis(cursor, upload_id, tags_dict):
             cursor.execute(INSERT_INTO_QUERY, (upload_id, tag, category))
 
     cursor.execute(INSERT_INTO_QUERY, (upload_id, tags_dict["category_archetype"], "category_archetype"))
+
 
 def save_user_upload(file_contents: bytes, tags_dict: dict):
     image_path = save_image(file_contents)
@@ -65,17 +70,19 @@ def save_user_upload(file_contents: bytes, tags_dict: dict):
     conn.close()
     return upload_id
 
-def save_image(file_contents):    
+
+def save_image(file_contents):
     if not os.path.exists(UPLOADS_PATH):
         os.makedirs(UPLOADS_PATH)
-        
+
     filename = f"{uuid.uuid4()}.jpg"
     file_path = os.path.join(UPLOADS_PATH, filename)
-    
-    with open(file_path, 'wb') as out_file:
+
+    with open(file_path, "wb") as out_file:
         out_file.write(file_contents)
-        
+
     return filename
+
 
 def init():
     connection = sqlite3.connect(DB)
@@ -83,7 +90,7 @@ def init():
     cursor.executescript(CREATE_TABLES_QUERY)
     _add_missing_columns(cursor)
     connection.commit()
-    logger.info(f"Db initialized and tables successfully.")
+    logger.info("Db initialized and tables successfully.")
     return connection
 
 

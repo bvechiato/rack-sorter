@@ -1,26 +1,61 @@
 CANDIDATE_TAGS = [
     # Necklines (Crucial for tops/dresses)
-    "v-neck", "crew neck", "scoop neck", "square neck", "halter neck", 
-    "turtleneck", "off-shoulder", "cowl neck", "polo collar",
-    
+    "v-neck",
+    "crew neck",
+    "scoop neck",
+    "square neck",
+    "halter neck",
+    "turtleneck",
+    "off-shoulder",
+    "cowl neck",
+    "polo collar",
     # Sleeves
-    "sleeveless", "short sleeve", "long sleeve", "puff sleeve", 
-    "cap sleeve", "bell sleeve", "raglan sleeve",
-    
+    "sleeveless",
+    "short sleeve",
+    "long sleeve",
+    "puff sleeve",
+    "cap sleeve",
+    "bell sleeve",
+    "raglan sleeve",
     # Lengths
-    "cropped", "mini", "midi", "maxi", "knee-length", "full-length",
-    
+    "cropped",
+    "mini",
+    "midi",
+    "maxi",
+    "knee-length",
+    "full-length",
     # Trousers/Bottoms
-    "high-waisted", "low-rise", "wide leg", "straight leg", "tapered", 
-    "flared", "bootcut", "cargo",
-    
+    "high-waisted",
+    "low-rise",
+    "wide leg",
+    "straight leg",
+    "tapered",
+    "flared",
+    "bootcut",
+    "cargo",
     # Closures/Features
-    "button-down", "zipper", "wrap-around", "drawstring", "elastic waist",
-    "cut-out", "slit", "peplum", "asymmetric",
-
+    "button-down",
+    "zipper",
+    "wrap-around",
+    "drawstring",
+    "elastic waist",
+    "cut-out",
+    "slit",
+    "peplum",
+    "asymmetric",
     # Patterns/Prints
-    "floral", "striped", "polka dot", "plaid", "animal print", "geometric", "paisley", "camouflage",
-    "ruched waist", "peplum", "collared", "long sleeve"
+    "floral",
+    "striped",
+    "polka dot",
+    "plaid",
+    "animal print",
+    "geometric",
+    "paisley",
+    "camouflage",
+    "ruched waist",
+    "peplum",
+    "collared",
+    "long sleeve",
 ]
 
 VINTED_COLOUR_MAP = {
@@ -52,7 +87,7 @@ VINTED_COLOUR_MAP = {
     "Silver": "13",
     "Gold": "14",
     "Multi": "15",
-    "Clear": "32"
+    "Clear": "32",
 }
 
 COLOUR_MAP: dict[str, list[str]] = {
@@ -66,15 +101,20 @@ COLOUR_MAP: dict[str, list[str]] = {
     "Purple": [VINTED_COLOUR_MAP["Purple"], VINTED_COLOUR_MAP["Lilac"]],
     "Blue": [VINTED_COLOUR_MAP["Blue"], VINTED_COLOUR_MAP["Light blue"], VINTED_COLOUR_MAP["Navy"]],
     "Turquoise": [VINTED_COLOUR_MAP["Turquoise"]],
-    "Green": [VINTED_COLOUR_MAP["Green"], VINTED_COLOUR_MAP["Dark green"], VINTED_COLOUR_MAP["Mint"], VINTED_COLOUR_MAP["Khaki"]],
+    "Green": [
+        VINTED_COLOUR_MAP["Green"],
+        VINTED_COLOUR_MAP["Dark green"],
+        VINTED_COLOUR_MAP["Mint"],
+        VINTED_COLOUR_MAP["Khaki"],
+    ],
     "Brown": [VINTED_COLOUR_MAP["Brown"], VINTED_COLOUR_MAP["Khaki"]],
     "Yellow": [VINTED_COLOUR_MAP["Yellow"], VINTED_COLOUR_MAP["Mustard"], VINTED_COLOUR_MAP["Gold"]],
     "Multi": [VINTED_COLOUR_MAP["Multi"]],
-    "Clear": [VINTED_COLOUR_MAP["Clear"]]
+    "Clear": [VINTED_COLOUR_MAP["Clear"]],
 }
 
 VINTED_CATEGORY_MAP = {
-    "All clothes": "4", 
+    "All clothes": "4",
     "Outerwear": "1037",
     "Jumpers & sweaters": "13",
     "Suits & blazers": "8",
@@ -91,7 +131,7 @@ VINTED_CATEGORY_MAP = {
     "Maternity clothes": "1176",
     "Activewear": "73",
     "Shoes": "16",
-    "Bags": "19"
+    "Bags": "19",
 }
 
 CATEGORY_HIERARCHY = {
@@ -99,7 +139,7 @@ CATEGORY_HIERARCHY = {
     "trousers, pants, jeans": ["Jeans", "Trousers & leggings", "Shorts & cropped trousers"],
     "dress, skirt": ["Dresses", "Skirts", "Skorts", "Jumpsuits & playsuits"],
     "shoes, boots, sandals": ["Shoes"],
-    "bag, purse, wallet": ["Bags"]
+    "bag, purse, wallet": ["Bags"],
 }
 
 VINTED_WOMENS_SIZE_MAP = {
@@ -119,5 +159,5 @@ VINTED_WOMENS_SIZE_MAP = {
     "8XL / UK 48-50": "1229",
     "9XL / UK 52": "1230",
     "One size": "90",
-    "Other": "97"
+    "Other": "97",
 }

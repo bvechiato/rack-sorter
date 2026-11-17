@@ -1,17 +1,21 @@
 import io
 import logging
-import torch
-import numpy as np
-from PIL import Image
+
 import cloudscraper
+import numpy as np
+import torch
+from PIL import Image
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoImageProcessor, AutoModel
+
+from config import DINO_MODEL_ID as MODEL_ID
 from dtos import SearchItem
-from .repository import get_upload_bytes_by_id
 from model.repository.user_uploads import get_embedding_by_upload_id, insert_embedding_for_upload
 from service.identifier import get_single_clip_embedding
+
+from .repository import get_upload_bytes_by_id
+
 logger = logging.getLogger(__name__)
-from config import DINO_MODEL_ID as MODEL_ID
 
 # Lazily loaded (on first use) so importing this module never downloads a model.
 processor = None
@@ -32,13 +36,14 @@ def get_dino_model():
         logger.debug("Initialised local DINOv2 for vector extraction")
     return model
 
-def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> list[SearchItem]:  
+
+def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> list[SearchItem]:
     try:
         anchor_features = get_embedding_by_upload_id(upload_id)
         if anchor_features is None:
             raise ValueError("missing anchor embedding")
-    except Exception as e:
-        anchor_bytes = get_upload_bytes_by_id(upload_id) 
+    except Exception:
+        anchor_bytes = get_upload_bytes_by_id(upload_id)
         anchor_features = process_and_normalise(anchor_bytes)
         insert_embedding_for_upload(upload_id, anchor_features.squeeze().numpy().tolist())
 
@@ -54,24 +59,16 @@ def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> lis
         try:
             image = fetch_image_bytes_from_item(item)
             if image is None:
-                logger.warning(f"Skipping item, image not found")
+                logger.warning("Skipping item, image not found")
                 continue
 
             scraped_item_features = process_and_normalise(image)
-                
+
             # Compute pure spatial similarity matrix
-            similarity = cosine_similarity(
-                anchor_array, 
-                scraped_item_features.numpy()
-            )[0][0]
+            similarity = cosine_similarity(anchor_array, scraped_item_features.numpy())[0][0]
 
             item.similarity_score = float(similarity)
-            item.embedding = (
-                scraped_item_features
-                    .squeeze()
-                    .numpy()
-                    .tolist()
-            )
+            item.embedding = scraped_item_features.squeeze().numpy().tolist()
 
             # FashionCLIP vector for trait steering: computed here because the image
             # bytes are already in memory, so the feedback path never re-downloads.
@@ -80,12 +77,13 @@ def process_and_rank_pool(scraped_items: set[SearchItem], upload_id: int) -> lis
             except Exception as e:
                 logger.warning(f"CLIP embedding failed for {item.url}: {e}")
 
-            ranked_pool.add(item)  
+            ranked_pool.add(item)
         except Exception as e:
             logger.warning(f"Skipping item due to error: {e}")
             continue
 
     return sorted(list(ranked_pool), key=lambda x: x.similarity_score, reverse=True)
+
 
 def process_and_normalise(image_bytes) -> list:
     """Extracts DINOv2 visual features from a single image."""
@@ -100,6 +98,7 @@ def process_and_normalise(image_bytes) -> list:
         features /= features.norm(dim=-1, keepdim=True)
     return features
 
+
 def fetch_image_bytes_from_item(item: SearchItem) -> bytes:
     """Fetches image bytes from a given item using cloudscraper."""
     scraper = cloudscraper.create_scraper()
@@ -107,17 +106,18 @@ def fetch_image_bytes_from_item(item: SearchItem) -> bytes:
     if not image_url:
         logger.warning(f"No image URL found for item: {item.title}")
         return None
-        
+
     response = scraper.get(image_url, timeout=3)
     if response.status_code != 200:
         logger.warning(f"Failed to fetch image from {image_url}, status code: {response.status_code}")
         return None
     return response.content
 
+
 def fetch_image_bytes_from_url(url: str) -> bytes:
     """Fetches image bytes from a given item using cloudscraper."""
     scraper = cloudscraper.create_scraper()
-        
+
     response = scraper.get(url, timeout=3)
     if response.status_code != 200:
         logger.warning(f"Failed to fetch image from {url}, status code: {response.status_code}")

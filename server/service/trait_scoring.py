@@ -5,7 +5,7 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import numpy as np
 
-from dtos import SearchItem, RerankFeedback
+from dtos import RerankFeedback, SearchItem
 from service import traits
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,11 @@ def apply_trait_modifiers(
             z_cache[key] = z_scores
             stats["missing_vectors"] += missing
             if flat:
-                logger.warning("Trait event skipped: axis '%s' has no spread across this pool (std < %s)", key, traits.MIN_TRAIT_SPREAD)
+                logger.warning(
+                    "Trait event skipped: axis '%s' has no spread across this pool (std < %s)",
+                    key,
+                    traits.MIN_TRAIT_SPREAD,
+                )
         if z_scores is None:
             stats["skipped_degenerate"] += 1
             continue
@@ -99,8 +103,13 @@ def apply_trait_modifiers(
 
     logger.debug(
         "Trait feedback applied: %d/%d events, superseded=%d, degenerate=%d, missing_clicked=%d, items_without_vector=%d, clamped=%d",
-        stats["applied"], stats["events"], stats["superseded"], stats["skipped_degenerate"],
-        stats["skipped_missing_vector"], stats["missing_vectors"], stats["clamped"],
+        stats["applied"],
+        stats["events"],
+        stats["superseded"],
+        stats["skipped_degenerate"],
+        stats["skipped_missing_vector"],
+        stats["missing_vectors"],
+        stats["clamped"],
     )
     return stats
 

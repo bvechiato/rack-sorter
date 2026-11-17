@@ -1,5 +1,5 @@
-from model.repository.query import QueryDTO, get_query_by_upload_id
 import model.repository.query as mod
+from model.repository.query import QueryDTO, get_query_by_upload_id
 
 
 def test_querydto_from_row():

@@ -1,17 +1,17 @@
 """Rerank orchestration: blends DINO visual feedback with trait-axis steering."""
 
 import logging
-from typing import List, Optional, Set
+from typing import List, Set
 
 import numpy as np
 
-from dtos import SearchItem, RerankFeedback
-from model.repository.search_items import get_item_by_url
-from model.repository.user_uploads import get_embedding_by_upload_id
-from service import traits
+from dtos import RerankFeedback, SearchItem
+from model.repository.search_items import get_item_by_url  # noqa: F401
+from model.repository.user_uploads import get_embedding_by_upload_id  # noqa: F401
+from service import traits  # noqa: F401
 from service.clip_vectors import CLIP_DIM, ensure_clip_embeddings, get_anchor_clip_embedding
-from service.scoring import DINO_DIM, build_intent_vector, compute_base_visual_scores
-from service.trait_scoring import (
+from service.scoring import build_intent_vector, compute_base_visual_scores
+from service.trait_scoring import (  # noqa: F401
     _assert_same_space,
     _axis_z_scores,
     _find_item,

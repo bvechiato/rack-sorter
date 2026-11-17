@@ -1,12 +1,15 @@
 import io
 import logging
+
+import numpy as np
 import torch
 from PIL import Image
-from transformers import CLIPProcessor, CLIPModel
-import numpy as np
-from service.static.CONSTANTS import CANDIDATE_TAGS, COLOUR_MAP, CATEGORY_HIERARCHY
-logger = logging.getLogger(__name__)
+from transformers import CLIPModel, CLIPProcessor
+
 from config import CLIP_MODEL_ID as MODEL_ID
+from service.static.CONSTANTS import CANDIDATE_TAGS, CATEGORY_HIERARCHY, COLOUR_MAP
+
+logger = logging.getLogger(__name__)
 
 # Lazily loaded (on first use) so importing this module never downloads a model.
 # `model`/`processor` are module globals so tests can monkeypatch them directly.
@@ -78,7 +81,7 @@ def extract_tags_from_image(image_bytes: bytes) -> dict:
         "classified_tags": suggested_tags["classified_tags"],
         "colour_archetype": suggested_colours["archetype"],
         "colour_classified_tags": suggested_colours["classified_tags"],
-        "category_archetype": suggested_category["archetype"]
+        "category_archetype": suggested_category["archetype"],
     }
 
 
@@ -101,8 +104,9 @@ def zero_shot_classification(image: Image, candidate_tags: list[str], limit: int
 
     return {
         "archetype": final_tags[0][0] if final_tags else sorted_pairs[0][0],
-        "classified_tags": [pair[0] for pair in final_tags]
+        "classified_tags": [pair[0] for pair in final_tags],
     }
+
 
 def get_single_clip_embedding(image_bytes: bytes) -> np.ndarray:
     """Helper to generate a clean, normalized 512-dim FashionCLIP vector from image bytes."""

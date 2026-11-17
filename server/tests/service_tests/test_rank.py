@@ -23,9 +23,7 @@ def test_pool_ranking_accepts_a_stored_list_anchor(monkeypatch):
     # item, so this path must be exercised with a list, not a tensor.
     monkeypatch.setattr(rank, "get_embedding_by_upload_id", lambda upload_id: [1.0, 0.0])
     monkeypatch.setattr(rank, "fetch_image_bytes_from_item", lambda item: b"image")
-    monkeypatch.setattr(
-        rank, "process_and_normalise", lambda data: _FakeTensor(np.array([[1.0, 0.0]]))
-    )
+    monkeypatch.setattr(rank, "process_and_normalise", lambda data: _FakeTensor(np.array([[1.0, 0.0]])))
     monkeypatch.setattr(rank, "get_single_clip_embedding", lambda image: np.array([0.0, 1.0]))
 
     item = SearchItem(title="long sleeve top", url="a", image_url="a.jpg")
