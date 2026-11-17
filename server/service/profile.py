@@ -9,19 +9,17 @@ from typing import Dict, Optional
 
 import numpy as np
 
-from model.repository.feedback import get_feedback_for_upload
 from service import traits
+from service.clip_vectors import ensure_clip_embeddings
 from service.repository import get_results_by_upload_id
-from service.rerank import _assert_same_space, _unit, get_anchor_clip_embedding, rerank
+from service.rerank import _assert_same_space, _unit, get_anchor_clip_embedding
 
 # Size of the "current results" polygon: the mean trait profile of the visible top.
 TOP_N = 10
 
 
-# Size of the "current results" polygon: the mean trait profile of the visible top.
-TOP_N = 10
-
-
+# Profile is feedback-independent now (the top-N polygon is gone), so there is no need
+# to replay the fold. We only ensure CLIP vectors exist for legacy rows.
 def build_trait_profile(upload_id: int, item_url: Optional[str] = None) -> dict:
     axes = traits.get_trait_axes()
     anchor = get_anchor_clip_embedding(upload_id)
@@ -29,13 +27,11 @@ def build_trait_profile(upload_id: int, item_url: Optional[str] = None) -> dict:
         raise ValueError(f"anchor CLIP embedding unavailable for upload {upload_id}")
     anchor_unit = _unit(anchor)
 
-    # Replays the same ranking the grid is showing, so the top polygon moves when the
-    # user gives feedback. Cheap once the vectors are warm (no network).
     items = get_results_by_upload_id(upload_id)
-    ranked = rerank(list(items), get_feedback_for_upload(upload_id), upload_id)
+    ensure_clip_embeddings(items, upload_id)
 
     vectors: Dict[str, np.ndarray] = {}
-    for item in ranked:
+    for item in items:
         vector = _unit(item.clip_embedding)
         if vector is not None:
             vectors[item.url] = vector
