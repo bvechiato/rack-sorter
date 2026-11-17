@@ -18,7 +18,7 @@ def get_clip_model():
     global model
     if model is None:
         model = CLIPModel.from_pretrained(MODEL_ID)
-        logger.info("Initialised local CLIP model for item classification and feedback")
+        logger.debug("Initialised local CLIP model for item classification and feedback")
     return model
 
 

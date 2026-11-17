@@ -18,6 +18,8 @@ class _ProbeNoiseFilter(logging.Filter):
         return "/health" not in message and "/v1/models" not in message
 
 
+logging.basicConfig(level=logging.INFO)
+
 logging.getLogger("uvicorn.access").addFilter(_ProbeNoiseFilter())
 logger = logging.getLogger(__name__)
 

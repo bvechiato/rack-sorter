@@ -16,6 +16,7 @@ export function useProductSearch() {
   // Feedbacks accumulated since the last catalogue-page fetch. A new page is
   // pulled only every FETCH_EVERY feedbacks, so most taps stay cheap.
   const [feedbacksSinceFetch, setFeedbacksSinceFetch] = useState(0);
+  const [fetchingMore, setFetchingMore] = useState(false);
   const FETCH_EVERY = 3;
 
   const traitProfile = useTraitProfile();
@@ -61,12 +62,13 @@ export function useProductSearch() {
       throw new Error('Missing upload id');
     }
 
+    const eventsCount = 1;
+    const willFetch = feedbacksSinceFetch + eventsCount >= FETCH_EVERY;
+
     setLoading(true);
+    setFetchingMore(willFetch);
 
     try {
-      const eventsCount = 1;
-      const willFetch = feedbacksSinceFetch + eventsCount >= FETCH_EVERY;
-
       const rankedData = await rerankBatch({
         upload_id: uploadId,
         feedback: [{ item_url: itemUrl, feedback_type: feedbackType, concept: concept ?? null }],
@@ -86,10 +88,12 @@ export function useProductSearch() {
 
       setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
 
-      await loadTraitProfile(uploadId, itemUrl);
+      // Profile is only needed for the Tune sheet's debug radar; it refreshes on
+      // open and after Done, so skip the extra /trait-profile call here.
     } catch (err) {
       throw err instanceof Error ? err : new Error('Vector calculation error');
     } finally {
+      setFetchingMore(false);
       setLoading(false);
     }
   };
@@ -109,6 +113,8 @@ export function useProductSearch() {
       const eventsCount = feedback.length;
       const willFetch = feedbacksSinceFetch + eventsCount >= FETCH_EVERY;
 
+      setFetchingMore(willFetch);
+
       const rankedData = await rerankBatch({
         upload_id: uploadId,
         feedback,
@@ -126,6 +132,7 @@ export function useProductSearch() {
     } catch (err) {
       throw err instanceof Error ? err : new Error('Vector calculation error');
     } finally {
+      setFetchingMore(false);
       setLoading(false);
     }
   };
@@ -138,6 +145,7 @@ export function useProductSearch() {
       traitPicks,
       newItems,
       feedbacksSinceFetch,
+      fetchingMore,
       traitProfile: traitProfile.state.traitProfile,
       profileError: traitProfile.state.profileError,
     },

@@ -25,16 +25,16 @@ CLIP_DIM = CLIP_DIM
 
 
 def rerank(previous_results: Set[SearchItem], feedback_history: List[RerankFeedback], upload_id: int) -> List[SearchItem]:
-    logger.info("Running dual-engine rerank pipeline on %d items.", len(previous_results))
+    logger.debug("Running dual-engine rerank pipeline on %d items.", len(previous_results))
 
     image_fb = [fb for fb in feedback_history if not fb.concept]
     trait_fb = [fb for fb in feedback_history if fb.concept]
 
     anchor_embedding = np.asarray(get_embedding_by_upload_id(upload_id), dtype=float).reshape(1, -1)
     intent_vector = build_intent_vector(anchor_embedding, image_fb)
-    logger.info("Intent vector created")
+    logger.debug("Intent vector created")
     items_with_base_scores = compute_base_visual_scores(list(previous_results), intent_vector)
-    logger.info("Generic image feedback computed")
+    logger.debug("Generic image feedback computed")
 
     if trait_fb:
         anchor_clip = get_anchor_clip_embedding(upload_id)
@@ -43,13 +43,7 @@ def rerank(previous_results: Set[SearchItem], feedback_history: List[RerankFeedb
         else:
             ensure_clip_embeddings(items_with_base_scores, upload_id)
             axes = traits.get_trait_axes()
-            stats = apply_trait_modifiers(items_with_base_scores, trait_fb, anchor_clip, axes)
-            logger.info(
-                "Trait feedback applied: %d/%d events, superseded=%d, degenerate=%d, "
-                "missing_clicked=%d, items_without_vector=%d, clamped=%d",
-                stats["applied"], stats["events"], stats["superseded"], stats["skipped_degenerate"],
-                stats["skipped_missing_vector"], stats["missing_vectors"], stats["clamped"],
-            )
+            apply_trait_modifiers(items_with_base_scores, trait_fb, anchor_clip, axes)
 
     items_with_base_scores.sort(key=lambda x: x.rerank_score, reverse=True)
     return items_with_base_scores

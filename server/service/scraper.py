@@ -72,7 +72,7 @@ def scrape_vinted_pool(query_params: str) -> set[SearchItem]:
     """Hits the public Vinted catalog endpoint with exact profile constraints."""
     url = f"https://www.vinted.co.uk/catalog?&{query_params}"
 
-    logger.info(f"\nTarget Scraping URL Generated: {url}\n")
+    logger.debug("Target Scraping URL Generated: %s", url)
 
     headers = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
