@@ -12,5 +12,7 @@ server/service/static/uploads/*
 server/search_eval.db
 server/search_eval.db-*
 
-# Local-only documentation
-/docs/
+# Local-only documentation, except the living E2E flow diagrams
+/docs/*
+!/docs/flows/
+!/docs/flows/**

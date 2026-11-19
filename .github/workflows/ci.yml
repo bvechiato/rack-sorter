@@ -48,6 +48,24 @@ jobs:
       - name: Run tests
         run: python -m pytest tests -q
 
+  flows:
+    name: Flow docs
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Require flow docs for API changes
+        if: ${{ !contains(github.event.pull_request.body, '[skip-flows]') }}
+        run: python3 scripts/check_flows.py --diff-base ${{ github.event.pull_request.base.sha }}
+
   client:
     name: Client (typecheck + build)
     runs-on: ubuntu-latest
