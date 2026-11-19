@@ -17,4 +17,3 @@ repos:
         entry: bash -c 'cd server && .venv/bin/python -m pytest tests -q'
         language: system
         pass_filenames: false
-PY
