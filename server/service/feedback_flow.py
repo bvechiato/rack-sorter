@@ -28,14 +28,13 @@ def apply_feedback_and_rerank(
         insert_rerank_feedback(upload_id, event.item_url, event.feedback_type, event.concept, event.aesthetic)
     logger.info("Inserted %d feedback event(s) for upload %d", len(events), upload_id)
 
-    new_items = 0
     if fetch_more:
         try:
-            new_items = fetch_more_for_upload(upload_id)
+            fetch_more_for_upload(upload_id)
         except Exception as e:
             logger.warning("Fetch-more failed for upload %d: %s; ranking the existing pool", upload_id, e)
 
     previous_results = get_results_by_upload_id(upload_id)
     feedback_history = get_feedback_for_upload(upload_id)
     processed_items = rerank(previous_results, feedback_history, upload_id=upload_id)
-    return FetchInitialResponse(pool=to_ItemResponse(processed_items), new_items=new_items)
+    return FetchInitialResponse(pool=to_ItemResponse(processed_items))

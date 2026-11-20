@@ -34,7 +34,7 @@ async def fetch_initial(bg_tasks: BackgroundTasks, request: FetchInitialRequest)
         save_query_to_db, request.uploadId, request.keyword.replace(" ", "+"), query_params, processed_items
     )
     reset_page_cursor(request.uploadId)
-    return FetchInitialResponse(pool=to_ItemResponse(processed_items), new_items=len(processed_items))
+    return FetchInitialResponse(pool=to_ItemResponse(processed_items))
 
 
 @router.post("/rerank")

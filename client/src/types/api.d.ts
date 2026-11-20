@@ -231,11 +231,6 @@ export interface components {
         FetchInitialResponse: {
             /** Pool */
             pool: components["schemas"]["ItemResponse"][];
-            /**
-             * New Items
-             * @default 0
-             */
-            new_items: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {

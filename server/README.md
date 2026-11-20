@@ -154,7 +154,6 @@ A tap only reorders what is already in the pool, so `/rerank` first pulls one mo
 - the cursor starts at page 2 and is capped at page 8 per upload;
 - new listings are deduped by URL and merged into the same query;
 - `/fetch_initial` resets the cursor for a new search;
-- the response returns `new_items` so the UI can say `+N new items from a wider search`;
 - a blocked or slow page is logged and the rerank proceeds on the existing pool. Feedback is persisted before the scrape, so it is never lost.
 
 #### Observability
@@ -171,7 +170,7 @@ The full design, verification notes and trade-offs are in [`docs/design/trait-as
 |---|---|
 | `POST /analyze` | Upload the anchor image; returns an upload id, tags, colour and category hints. |
 | `POST /fetch_initial` | Scrape the first catalogue page, embed candidates, return the ranked pool. |
-| `POST /rerank` | Persist feedback, fetch one extra page, replay the feedback history and return the updated pool plus `new_items`. |
+| `POST /rerank` | Persist feedback, fetch one extra page, replay the feedback history and return the updated pool. |
 | `GET /trait-profile` | Debug payload for the axes diagram. |
 
 ## Running the server

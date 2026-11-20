@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-20** against commit `fb979d5` — F8 removed from the fault map; stale `/compare` references deleted from `README.md`, `server/README.md`, and `client/vite.config.ts`.
+Last verified: **2026-11-20** against commit `14919a8` — F4 removed from the fault map; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook.
 
 ## System map
 
@@ -109,7 +109,7 @@ flowchart LR
 | --- | --- | --- | --- |
 | [01: Image analysis](#flow-01-image-analysis-and-search-seeding) | `SearchActionBar.tsx`, `App.tsx`, `useImageAnalysis.ts`, `api.ts` → `routes/analyze.py`, `identifier.py`, `eval_db.py` | F1, F6 | **None** |
 | [02: Initial search](#flow-02-filtered-initial-search) | `PreferencesPanel.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `scraper.py`, `rank.py`, `eval_db.py` | F1, F2 | **None** |
-| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` | F3, F4, F5 | **None** |
+| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` | F3, F5 | **None** |
 | [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `App.tsx`, `useProductSearch.ts`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `trait_scoring.py`, `aesthetic_scoring.py` | F3, F9 | **None** |
 | [05: Preferences & session](#flow-05-preferences-and-session-state) | `useFilters.ts`, `useUIState.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` | F7 | **None** |
 
@@ -206,10 +206,9 @@ sequenceDiagram
     FB->>DB: read latest query + full feedback history
     FB->>ML: rerank
     ML-->>FB: ranked pool
-    FB-->>API: pool + new_items
-    API-->>UI: pool + new_items
+    FB-->>API: pool
+    API-->>UI: pool
     Note over FB: F3 feedback is global per uploadId
-    Note over UI: F4 new_items is never rendered
     Note over FB: F5 cursor is in-process
 ```
 
@@ -218,7 +217,7 @@ sequenceDiagram
 - One tap = one event with `concept: null`; the client resets its counter whenever it asks for a page, even if zero items arrive.
 - Page fetch is fail-soft: failures rank the existing pool; the in-process cursor walks pages 2–8.
 - The server replays the **entire feedback history for the upload**, not the latest event or the current query (**F3**).
-- `new_items` is returned but never shown (**F4**); the page cursor does not survive a restart (**F5**).
+- The page cursor does not survive a restart (**F5**).
 
 ## Flow 04: Trait tuning (Tune sheet) + style strip
 
@@ -338,7 +337,6 @@ Grouped by what the user experiences. Fault IDs match the red markers, layer ann
 | **F1** | Search & upload | Keyword-only search sends `uploadId: 0`; `/fetch_initial` 500s | Require an analyzed upload, or support keyword-only search with a text anchor. |
 | **F2** | Search & upload | `/fetch_initial` returns before `save_query_to_db`; immediate feedback can 500 | Await the write or return a query ID the client sends back. |
 | **F3** | Feedback & ranking | Feedback is global per `upload_id`; a new search inherits old feedback | Scope feedback to `(upload_id, query_id)`. |
-| **F4** | Feedback & ranking | `new_items` is returned but never rendered | Add the “+N new items” notice. |
 | **F5** | Feedback & ranking | Page cursor is in-process and capped at page 8 | Persist the cursor or document single-process behavior. |
 | **F6** | Security | No auth/ownership checks; upload IDs are enumerable | Add session/ownership checks before any multi-user deployment. |
 | **F7** | Persistence & state | Category and colours are lost on reload | Persist them like sizes/price/conditions. |
