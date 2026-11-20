@@ -25,8 +25,6 @@ class ItemResponse(BaseModel):
 
 class FetchInitialResponse(BaseModel):
     pool: list[ItemResponse]
-    # Items appended by the last rerank's extra catalogue page (0 on a fresh search).
-    new_items: int = 0
 
 
 class AnalyseResponse(BaseModel):

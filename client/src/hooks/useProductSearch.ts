@@ -21,7 +21,6 @@ export function useProductSearch() {
   // server's append-only history, which is also keyed by upload.
   const [aesthetics, setAesthetics] = useState<string[]>([]);
   const aestheticsUploadId = useRef<any>(null);
-  const [newItems, setNewItems] = useState(0);
   // Feedbacks accumulated since the last catalogue-page fetch. A new page is
   // pulled only every FETCH_EVERY feedbacks, so most taps stay cheap.
   const [feedbacksSinceFetch, setFeedbacksSinceFetch] = useState(0);
@@ -62,7 +61,6 @@ export function useProductSearch() {
         aestheticsUploadId.current = uploadId;
         setAesthetics([]);
       }
-      setNewItems(0);
       setFeedbacksSinceFetch(0);
       clearTraitProfile();
     } catch {
@@ -92,7 +90,6 @@ export function useProductSearch() {
 
       setProducts(rankedData.pool || []);
       setCurrentPool(rankedData.pool || []);
-      setNewItems(rankedData.new_items ?? 0);
 
       if (concept) {
         setTraitPicks(prev => ({
@@ -138,7 +135,6 @@ export function useProductSearch() {
 
       setProducts(rankedData.pool || []);
       setCurrentPool(rankedData.pool || []);
-      setNewItems(rankedData.new_items ?? 0);
       setTraitPicks(prev => ({ ...prev, [itemUrl]: picks }));
 
       setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
@@ -188,7 +184,6 @@ export function useProductSearch() {
 
       setProducts(rankedData.pool || []);
       setCurrentPool(rankedData.pool || []);
-      setNewItems(rankedData.new_items ?? 0);
       setAesthetics(prev => (
         active
           ? prev.filter(value => value.toLowerCase() !== normalized.toLowerCase())
@@ -211,7 +206,6 @@ export function useProductSearch() {
       loading,
       traitPicks,
       aesthetics,
-      newItems,
       feedbacksSinceFetch,
       fetchingMore,
       traitProfile: traitProfile.state.traitProfile,
