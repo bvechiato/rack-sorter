@@ -173,7 +173,6 @@ The full design, verification notes and trade-offs are in [`docs/design/trait-as
 | `POST /fetch_initial` | Scrape the first catalogue page, embed candidates, return the ranked pool. |
 | `POST /rerank` | Persist feedback, fetch one extra page, replay the feedback history and return the updated pool plus `new_items`. |
 | `GET /trait-profile` | Debug payload for the axes diagram. |
-| `POST /compare` | Legacy item comparison; no longer called by the UI. |
 
 ## Running the server
 

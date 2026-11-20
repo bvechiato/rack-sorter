@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-20** against commit `a21dfdf` — Flow 04 updated for the global style strip (server: `service/aesthetic_scoring.py` + rerank split; client: `StyleStrip.tsx` under the search filters, immediate rerank on tap, LESS-based removal).
+Last verified: **2026-11-20** against commit `fb979d5` — F8 removed from the fault map; stale `/compare` references deleted from `README.md`, `server/README.md`, and `client/vite.config.ts`.
 
 ## System map
 
@@ -331,7 +331,7 @@ No auth, sessions, tokens, or ownership checks exist. Upload IDs are sequential 
 
 ### Fault map
 
-Grouped by what the user experiences. Fault IDs match the red markers, layer annotations, and `Note over` labels in the diagrams; F8 is documentation-only and has no runtime node.
+Grouped by what the user experiences. Fault IDs match the red markers, layer annotations, and `Note over` labels in the diagrams.
 
 | ID | Area | What breaks | Fix direction |
 | --- | --- | --- | --- |
@@ -342,7 +342,6 @@ Grouped by what the user experiences. Fault IDs match the red markers, layer ann
 | **F5** | Feedback & ranking | Page cursor is in-process and capped at page 8 | Persist the cursor or document single-process behavior. |
 | **F6** | Security | No auth/ownership checks; upload IDs are enumerable | Add session/ownership checks before any multi-user deployment. |
 | **F7** | Persistence & state | Category and colours are lost on reload | Persist them like sizes/price/conditions. |
-| **F8** | Hygiene | `/compare` is documented and proxied but does not exist | Remove the stale README/Vite references. |
 | **F9** | Feedback & ranking | `/trait-profile` 500s when CLIP vectors are missing; legacy backfill is synchronous | Backfill at ingest or async; keep the axes-unavailable fallback. |
 
 ## Verification & harness
