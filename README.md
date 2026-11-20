@@ -85,7 +85,7 @@ It also keeps a lightweight local store of uploads, search attempts, scraped res
 - The feedback services blend visual feedback, project trait axes, and page through more catalogue results.
 - The persistence layer stores uploads, search history, candidate embeddings and feedback in a local database.
 
-The backend exposes the pipeline over a small HTTP API: `/analyze`, `/fetch_initial`, `/rerank` and a read-only `/trait-profile` debug endpoint. `/compare` remains for debugging but is no longer used by the client.
+The backend exposes the pipeline over a small HTTP API: `/analyze`, `/fetch_initial`, `/rerank` and a read-only `/trait-profile` debug endpoint.
 
 ## Why It’s Structured This Way
 
@@ -108,7 +108,7 @@ This architecture keeps responsibilities clean:
   - `npm install`
   - `npm run dev`
 
-`npm run dev` regenerates `client/src/types/api.d.ts` from the running server (`/openapi.json`) and then starts Vite on <http://localhost:3000>. The client proxies `/analyze`, `/fetch_initial`, `/rerank`, `/trait-profile` and `/compare` to the backend on port 8000.
+`npm run dev` regenerates `client/src/types/api.d.ts` from the running server (`/openapi.json`) and then starts Vite on <http://localhost:3000>. The client proxies `/analyze`, `/fetch_initial`, `/rerank` and `/trait-profile` to the backend on port 8000.
 
 ## Tests
 
