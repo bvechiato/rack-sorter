@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-19** against commit `a21dfdf`.
+Last verified: **2026-11-20** against commit `a21dfdf` — Flow 04 updated for the global style strip (server: `service/aesthetic_scoring.py` + rerank split; client: `StyleStrip.tsx` under the search filters, immediate rerank on tap, LESS-based removal).
 
 ## System map
 
@@ -41,6 +41,7 @@ flowchart LR
         CL(("FashionCLIP"))
         FD[["Feedback + trait fold"]]
         PR[["Trait profile"]]
+        AL[["Aesthetic lane"]]
     end
 
     subgraph External["External · orange"]
@@ -85,6 +86,8 @@ flowchart LR
     F1 -.-> FI
     F2 -.-> EV
     F3 -.-> FD
+    RR --> AL
+    AL --> RR
 
     class UI,API client
     class AN,FI,RR,TP route
@@ -94,8 +97,8 @@ flowchart LR
     class F1,F2,F3 fault
 
     linkStyle 0,1,2,3,4 stroke:#4aa3ff,stroke-width:2px
-    linkStyle 5,6,7,8,9,10 stroke:#a78bfa,stroke-width:2px
-    linkStyle 11,12,13,14,15,16,17,18,19,20 stroke:#34d399,stroke-width:2px
+    linkStyle 5,6,7,8,9,10,25 stroke:#a78bfa,stroke-width:2px
+    linkStyle 11,12,13,14,15,16,17,18,19,20,26 stroke:#34d399,stroke-width:2px
     linkStyle 21 stroke:#fb923c,stroke-width:2px
     linkStyle 22,23,24 stroke:#ff5a5a,stroke-width:2px,stroke-dasharray: 5 3
 ```
@@ -107,7 +110,7 @@ flowchart LR
 | [01: Image analysis](#flow-01-image-analysis-and-search-seeding) | `SearchActionBar.tsx`, `App.tsx`, `useImageAnalysis.ts`, `api.ts` → `routes/analyze.py`, `identifier.py`, `eval_db.py` | F1, F6 | **None** |
 | [02: Initial search](#flow-02-filtered-initial-search) | `PreferencesPanel.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `scraper.py`, `rank.py`, `eval_db.py` | F1, F2 | **None** |
 | [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` | F3, F4, F5 | **None** |
-| [04: Trait tuning](#flow-04-trait-tuning-tune-sheet) | `TraitSheet.tsx`, `App.tsx`, `useProductSearch.ts`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `trait_scoring.py` | F3, F9 | **None** |
+| [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `App.tsx`, `useProductSearch.ts`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `trait_scoring.py`, `aesthetic_scoring.py` | F3, F9 | **None** |
 | [05: Preferences & session](#flow-05-preferences-and-session-state) | `useFilters.ts`, `useUIState.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` | F7 | **None** |
 
 Path shorthand: client files are under `client/src/`, server route/service files under `server/`, and test paths under `server/tests/`.
@@ -217,14 +220,14 @@ sequenceDiagram
 - The server replays the **entire feedback history for the upload**, not the latest event or the current query (**F3**).
 - `new_items` is returned but never shown (**F4**); the page cursor does not survive a restart (**F5**).
 
-## Flow 04: Trait tuning (Tune sheet)
+## Flow 04: Trait tuning (Tune sheet) + style strip
 
-Steer results along fixed traits and inspect the debug radar.
+Steer results along fixed physical traits via the Tune sheet, or absolute free-text style phrases via the global StyleStrip; inspect the debug radar.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant UI as TraitSheet
+    participant UI as StyleStrip + TraitSheet
     participant API as FastAPI
     participant P as profile
     participant ML as CLIP + scorer
@@ -243,21 +246,28 @@ sequenceDiagram
         API-->>UI: 500 → axes unavailable
     end
     Note over P: F9 profile 500 → axes unavailable
-    Note over UI: queue MORE/LESS locally
-    UI->>API: POST /rerank_batch (concept events)
-    API->>ML: shared rerank + trait fold
+    Note over UI: StyleStrip: tap chip → POST /rerank_batch now
+    UI->>API: POST /rerank_batch (aesthetic events)
+    API->>ML: rerank: aesthetic lane
     ML-->>API: ranked pool
     API-->>UI: pool
-    Note over API: F3 trait events share upload-global history
-    Note over ML: last write wins per item + concept
+    Note over API: F3 events share upload-global history
+    Note over ML: aesthetic: last write wins per phrase; absolute (no clicked item)
+    Note over UI: Tune sheet: queue physical picks; Done → POST /rerank_batch
+    UI->>API: POST /rerank_batch (trait events)
+    API->>ML: rerank: trait fold
+    ML-->>API: ranked pool
+    API-->>UI: pool
+    Note over ML: physical: last write wins per item + concept
 ```
 
 **Gotchas & rules**
 
-- Closed vocabulary: `sleeves`, `neckline`, `length`, `pattern`, `fit`; unknown concepts fail validation.
-- The sheet queues locally and sends only on **Done**; no picks simply closes.
-- Last write wins per `(item_url, concept)`. Projections are clipped to ±3, weighted `0.45` / `0.60`, and clamped at ±0.8 per item.
-- Flat axes and missing CLIP vectors skip the event; a profile failure only disables the debug axes (**F9**).
+- Closed vocabulary: `sleeves`, `neckline`, `length`, `pattern`, `fit`; unknown concepts fail validation. Aesthetic events carry a free-text `aesthetic` phrase (new `rerank_feedback.aesthetic` column); the aesthetic lane is absolute — direction comes from the phrase, not the clicked item.
+- The strip reranks immediately on tap (no queue): tapping an active chip off sends `LESS`, which removes the phrase; a later `MORE` re-enables it.
+- The sheet queues physical picks locally and sends them on **Done**; no picks simply closes.
+- Last write wins per `(item_url, concept)` for physical events and per phrase for aesthetic events. Physical projections are clipped to ±3, weighted `0.45` / `0.60`; aesthetic adjustments use `W_AESTHETIC = 0.45`; both share the ±0.8 per-item clamp. When the last aesthetic phrase is removed, the lane leaves the pool untouched — the base scores stand.
+- Physical and visual lanes stay separate: aesthetic events never feed the visual intent vector; flat axes, blank phrases and missing CLIP vectors skip the event (physical and aesthetic share the spread/skip policy). A profile failure only disables the debug axes (**F9**).
 
 ## Flow 05: Preferences and session state
 
@@ -353,7 +363,7 @@ There is **no browser E2E suite**. The closest automated coverage is HTTP valida
 | 01 | `tests/api_tests/test_smoke.py::test_analyze_requires_a_file` |
 | 02 | `test_smoke.py::test_fetch_initial_validates_required_fields`, `test_rank.py`, `test_scraper.py`, repository tests |
 | 03 | `test_smoke.py::test_rerank_batch_validates_required_fields`, `test_pool.py`, `test_rerank.py`, `test_feedback.py` |
-| 04 | `test_smoke.py::test_trait_profile_requires_upload_id`, `test_profile.py`, `test_traits.py`, `test_rerank.py` |
+| 04 | `test_smoke.py::test_trait_profile_requires_upload_id`, `test_profile.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
 | 05 | None (client has no test runner) |
 
 <details>
@@ -366,7 +376,9 @@ There is **no browser E2E suite**. The closest automated coverage is HTTP valida
 5. Tap a third time → fetch + rerank; counter resets.
 6. Open Tune → radar loads; queue traits → Done → rerank, picks persist, sheet closes.
 7. Reopen Tune for the same item → applied picks are mirrored.
-8. Stop the backend and retry → toast/sheet error path.
+8. Style strip → below the filters: tap a chip → pool reranks, chip becomes active (✕);
+   tap again → removed; "＋ more" reveals the preset list + free-text field.
+9. Stop the backend and retry → toast/sheet error path.
 
 Record which steps actually ran. Do not claim an E2E pass from unit tests alone.
 

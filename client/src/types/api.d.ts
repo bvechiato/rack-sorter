@@ -192,6 +192,10 @@ export interface components {
         /**
          * FeedbackEvent
          * @description One queued trait/visual choice, sent when the sheet is dismissed with Done.
+         *
+         *     For aesthetic events (``aesthetic`` set) the lane is absolute: the phrase carries
+         *     the intent, so ``feedback_type`` is required for wire compatibility but is not
+         *     used by the aesthetic lane.
          */
         FeedbackEvent: {
             /** Item Url */
@@ -203,6 +207,8 @@ export interface components {
             feedback_type: "MORE" | "LESS";
             /** Concept */
             concept?: ("sleeves" | "neckline" | "length" | "pattern" | "fit") | null;
+            /** Aesthetic */
+            aesthetic?: string | null;
         };
         /** FetchInitialRequest */
         FetchInitialRequest: {

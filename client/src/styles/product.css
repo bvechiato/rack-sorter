@@ -360,6 +360,137 @@
   color: #ff7089;
 }
 
+/* ==========================================================================
+   STYLE STRIP — global, absolute aesthetic steering (whole rack)
+   Sits under the Search Filters panel. Chips are the primary control; "＋ more"
+   reveals the full preset list plus a free-text phrase field.
+   ========================================================================== */
+.style-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #131313;
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  transition: opacity 0.15s;
+}
+
+.style-strip.is-disabled {
+  opacity: 0.5;
+}
+
+.style-strip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.style-strip-label {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted, #888);
+}
+
+.style-chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Reset the global full-width button rule; these are pills, not actions. */
+.style-chip {
+  width: auto;
+  flex: 0 0 auto;
+  border: 1px solid var(--border, #2a2a2a);
+  background: #1b1b1b;
+  color: #9a9a9a;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.style-chip:hover {
+  border-color: #3a3a3a;
+  color: var(--text, #fff);
+}
+
+.style-chip.on {
+  background: var(--accent-dim, rgba(0, 229, 255, 0.12));
+  border-color: var(--accent, #00e5ff);
+  color: var(--accent, #00e5ff);
+  font-weight: 700;
+}
+
+.style-chip.more {
+  border-style: dashed;
+  color: #bbb;
+}
+
+.style-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.style-chip:focus-visible,
+.style-input:focus-visible,
+.style-add:focus-visible {
+  outline: 2px solid var(--accent, #00e5ff);
+  outline-offset: 2px;
+}
+
+.style-form {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Reset the global text-input sizing so the field matches the strip. */
+.style-input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  background: #1b1b1b;
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: 10px;
+  color: var(--text, #fff);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.style-input::placeholder { color: #666; }
+.style-input:focus { outline: none; border-color: var(--accent, #00e5ff); }
+
+.style-add {
+  width: auto;
+  flex: 0 0 auto;
+  background: var(--accent, #00e5ff);
+  color: #001014;
+  border: 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 8px 13px;
+  cursor: pointer;
+}
+
+.style-add:disabled { cursor: not-allowed; opacity: 0.55; }
+
 .trait-sheet-foot {
   display: flex;
   align-items: center;

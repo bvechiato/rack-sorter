@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import Header from './components/Header';
 import ErrorBoundary from './components/ErrorBoundary';
 import SearchActionBar from './components/SearchActionBar';
+import StyleStrip from './components/StyleStrip';
 import KeywordSuggestions from './components/KeywordSuggestions';
 import PreferencesPanel from './components/preferences/PreferencesPanel';
 import ProductGrid from './components/product/ProductGrid';
@@ -39,6 +40,18 @@ function App() {
   const handleScrape = async () => {
     try {
       await searchActions.scrapeProducts(imageState.uploadId, imageState.confirmedKeyword, filters);
+    } catch (err: any) {
+      uiActions.showError(err.message);
+    }
+  };
+
+  // Styles are global, so the strip toggles one phrase at a time and the whole pool reranks.
+  const handleToggleAesthetic = async (phrase: string) => {
+    const isActive = searchState.aesthetics.some(
+      value => value.toLowerCase() === phrase.toLowerCase(),
+    );
+    try {
+      await searchActions.toggleAesthetic(imageState.uploadId, phrase, isActive);
     } catch (err: any) {
       uiActions.showError(err.message);
     }
@@ -99,6 +112,13 @@ function App() {
         isOpen={uiState.preferencesOpen}
         toggleOpen={uiActions.togglePreferences}
         onScrape={handleScrape}
+      />
+
+      <StyleStrip
+        active={searchState.aesthetics}
+        disabled={!imageState.uploadId || searchState.products.length === 0}
+        busy={searchState.loading}
+        onToggle={handleToggleAesthetic}
       />
 
       {searchState.loading && searchState.products.length === 0 && <LoadingIndicator />}

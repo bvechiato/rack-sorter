@@ -77,3 +77,19 @@ export const TRAITS: TraitOption[] = [
   { key: 'pattern', label: 'Pattern' },
   { key: 'fit', label: 'Fit' },
 ];
+
+/**
+ * Free-text aesthetic phrases the user can steer toward ("formal", "minimalist").
+ * The axis is user-supplied CLIP text, so the list is open vocabulary: any phrase
+ * CLIP understands works. Used by the Tune sheet's aesthetic section.
+ */
+export const AESTHETIC_PRESETS: string[] = [
+  'formal',
+  'casual',
+  'minimal',
+  'ornate',
+  'boho',
+  'streetwear',
+  'vintage',
+  'relaxed',
+];

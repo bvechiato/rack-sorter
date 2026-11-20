@@ -25,7 +25,7 @@ def apply_feedback_and_rerank(
         raise ValueError("feedback must contain at least one event")
 
     for event in events:
-        insert_rerank_feedback(upload_id, event.item_url, event.feedback_type, event.concept)
+        insert_rerank_feedback(upload_id, event.item_url, event.feedback_type, event.concept, event.aesthetic)
     logger.info("Inserted %d feedback event(s) for upload %d", len(events), upload_id)
 
     new_items = 0

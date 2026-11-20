@@ -8,6 +8,14 @@ def test_rerankfeedback_from_row():
     assert rf.item_url == 'http://a'
 
 
+def test_rerankfeedback_from_row_with_aesthetic():
+    row = ('http://a', 'MORE', None, 'formal')
+    rf = RerankFeedback.from_row(row)
+    assert rf.item_url == 'http://a'
+    assert rf.feedback_type == 'MORE'
+    assert rf.aesthetic == 'formal'
+
+
 def test_get_feedback_for_upload_monkeypatch(monkeypatch):
     class FakeConn:
         def __enter__(self):
