@@ -1,6 +1,7 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,10 +28,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from service.eval_db import init
+    # Schema is owned by Alembic; import here to keep module import side-effect free.
+    from alembic import command
+    from alembic.config import Config
 
-    conn = init()
-    conn.close()
+    command.upgrade(Config(str(Path(__file__).with_name("alembic.ini"))), "head")
     yield
 
 
