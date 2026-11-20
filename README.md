@@ -110,6 +110,20 @@ This architecture keeps responsibilities clean:
 
 `npm run dev` regenerates `client/src/types/api.d.ts` from the running server (`/openapi.json`) and then starts Vite on <http://localhost:3000>. The client proxies `/analyze`, `/fetch_initial`, `/rerank` and `/trait-profile` to the backend on port 8000.
 
+## Running with Docker
+
+Build the React app and start the single container (FastAPI serves both the API and the built client):
+
+```bash
+docker compose up --build
+```
+
+The app is at <http://localhost:8000>. Port 8000 is bound to localhost only; override with `RS_HOST` / `RS_PORT` if it's already in use (e.g. `RS_PORT=8001 docker compose up -d`). For a temporary public HTTPS URL without opening a firewall, run `cloudflared tunnel --url http://localhost:8000` in a second terminal.
+
+Two named volumes keep state across container recreations: `app-data` (SQLite database and uploaded images) and `hf-cache` (downloaded model weights). With warming enabled (the compose default), **startup** downloads the two models into `hf-cache` (~1 GB); later starts reuse them. A cold start can take a few minutes, so allow time before the container reports healthy. Allow a few GB of disk and ~2–4 GB of RAM for the models plus PyTorch — more on x86 hosts, where the PyTorch wheel is much larger. Paths, CORS and model warming can be overridden with `RS_DB_PATH`, `RS_UPLOADS_PATH`, `RS_CORS_ORIGINS` and `RS_WARM_MODELS` (they are interpolated in `docker-compose.yml`; warming defaults to on in the container, off in local dev). Run a single container/replica — the page cursor, CLIP cache and SQLite writer are process-local.
+
+Build **on the machine that will run the container**. `docker compose up --build` builds for that host's CPU architecture automatically; copying an image built on an arm64 Mac to an x86 server (or vice versa) produces `exec format error`. On the host, `uname -m` reports `aarch64`/`arm64` for ARM or `x86_64` for x86.
+
 ## Tests
 
 - Server: `cd server && .venv/bin/python -m pytest tests -q`
