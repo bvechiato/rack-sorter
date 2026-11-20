@@ -31,6 +31,9 @@ TRAIT_PROMPTS: Dict[str, tuple[str, str]] = {
 
 W_MORE = 0.45
 W_LESS = 0.60
+# Absolute aesthetic steering: one weight unit of the
+# phrase's pool-relative z score pushes the pool toward the phrase.
+W_AESTHETIC = 0.45
 # Candidate projections are standardised against the *current pool* before weighting:
 # CLIP axes have wildly different spreads (length std ≈ 0.04, pattern ≈ 0.08), so raw
 # projections made feedback ~10× weaker than intended and trait-dependent. One standard

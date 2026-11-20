@@ -61,7 +61,7 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
     if (applying) return;
 
     const active = Object.entries(picks) as [Trait, Direction][];
-    if (!active.length) {
+    if (active.length === 0) {
       onClose();
       return;
     }

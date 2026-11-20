@@ -104,3 +104,7 @@ def _add_missing_columns(cursor):
     if "clip_embedding" not in existing:
         cursor.execute("ALTER TABLE search_items ADD COLUMN clip_embedding BLOB")
         logger.info("Migrated search_items: added clip_embedding column")
+    existing = {row[1] for row in cursor.execute("PRAGMA table_info(rerank_feedback)")}
+    if "aesthetic" not in existing:
+        cursor.execute("ALTER TABLE rerank_feedback ADD COLUMN aesthetic TEXT")
+        logger.info("Migrated rerank_feedback: added aesthetic column")

@@ -52,11 +52,17 @@ class RerankRequest(BaseModel):
 
 
 class FeedbackEvent(BaseModel):
-    """One queued trait/visual choice, sent when the sheet is dismissed with Done."""
+    """One queued trait/visual choice, sent when the sheet is dismissed with Done.
+
+    For aesthetic events (``aesthetic`` set) the lane is absolute: the phrase carries
+    the intent, so ``feedback_type`` is required for wire compatibility but is not
+    used by the aesthetic lane.
+    """
 
     item_url: str
     feedback_type: Literal["MORE", "LESS"]
     concept: Optional[Trait] = None
+    aesthetic: Optional[str] = None
 
 
 class BatchRerankRequest(BaseModel):

@@ -53,9 +53,12 @@ class RerankFeedback:
     item_url: str
     feedback_type: str
     concept: Optional[str] = None
+    aesthetic: Optional[str] = None
 
     @staticmethod
     def from_row(row: Tuple) -> "RerankFeedback":
+        if len(row) == 4:
+            return RerankFeedback(item_url=row[0], feedback_type=row[1], concept=row[2], aesthetic=row[3])
         if len(row) == 3:
             return RerankFeedback(item_url=row[0], feedback_type=row[1], concept=row[2])
         else:

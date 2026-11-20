@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS rerank_feedback (
     item_url TEXT,
     feedback_type TEXT CHECK(feedback_type IN ('MORE', 'LESS')),
     concept TEXT,
+    aesthetic TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (upload_id) REFERENCES user_uploads(id)
 );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { fetchInitial, rerankBatch } from '../api';
 import type { components } from '../types/api';
 import type { Trait } from '../static/constants';
@@ -7,11 +7,20 @@ import { useTraitProfile } from './useTraitProfile';
 export type TraitPicks = Partial<Record<Trait, 'MORE' | 'LESS'>>;
 type Item = components['schemas']['ItemResponse'];
 
+// Aesthetic events are global, so there is no clicked item to name. The field is required
+// by the API shape and ignored by the aesthetic lane; a stable sentinel keeps the stored
+// history honest instead of borrowing some card's URL.
+const GLOBAL_FEEDBACK_ITEM_URL = 'global';
+
 export function useProductSearch() {
   const [currentPool, setCurrentPool] = useState<Item[]>([]);
   const [products, setProducts] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [traitPicks, setTraitPicks] = useState<Record<string, TraitPicks>>({});
+  // Aesthetics are global: one list per upload, not per item. Kept in step with the
+  // server's append-only history, which is also keyed by upload.
+  const [aesthetics, setAesthetics] = useState<string[]>([]);
+  const aestheticsUploadId = useRef<any>(null);
   const [newItems, setNewItems] = useState(0);
   // Feedbacks accumulated since the last catalogue-page fetch. A new page is
   // pulled only every FETCH_EVERY feedbacks, so most taps stay cheap.
@@ -47,6 +56,12 @@ export function useProductSearch() {
       setCurrentPool(poolData.pool || []);
       setProducts(poolData.pool || []);
       setTraitPicks({});
+      // Feedback history is stored per upload, so a re-scrape of the same upload keeps
+      // steering; only a new upload starts from a clean style list.
+      if (aestheticsUploadId.current !== uploadId) {
+        aestheticsUploadId.current = uploadId;
+        setAesthetics([]);
+      }
       setNewItems(0);
       setFeedbacksSinceFetch(0);
       clearTraitProfile();
@@ -137,12 +152,65 @@ export function useProductSearch() {
     }
   };
 
+  /**
+   * Switch one global style phrase on or off and rerank the pool.
+   *
+   * Aesthetic events are absolute: the phrase carries the intent, so ``feedback_type`` is
+   * just the switch (MORE = steer toward it, LESS = remove it). ``item_url`` is a required
+   * carrier field that the aesthetic lane ignores — there is no "clicked item" here.
+   */
+  const toggleAesthetic = async (uploadId: any, phrase: string, active: boolean) => {
+    if (!uploadId) {
+      throw new Error('Missing upload id');
+    }
+
+    const normalized = phrase.trim();
+    if (!normalized) return;
+
+    const eventsCount = 1;
+    const willFetch = feedbacksSinceFetch + eventsCount >= FETCH_EVERY;
+
+    setLoading(true);
+    setFetchingMore(willFetch);
+
+    try {
+      const rankedData = await rerankBatch({
+        upload_id: uploadId,
+        feedback: [
+          {
+            item_url: GLOBAL_FEEDBACK_ITEM_URL,
+            feedback_type: active ? 'LESS' : 'MORE',
+            aesthetic: normalized,
+          },
+        ],
+        fetch_more: willFetch,
+      });
+
+      setProducts(rankedData.pool || []);
+      setCurrentPool(rankedData.pool || []);
+      setNewItems(rankedData.new_items ?? 0);
+      setAesthetics(prev => (
+        active
+          ? prev.filter(value => value.toLowerCase() !== normalized.toLowerCase())
+          : [...prev, normalized]
+      ));
+
+      setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Vector calculation error');
+    } finally {
+      setFetchingMore(false);
+      setLoading(false);
+    }
+  };
+
   return {
     state: {
       currentPool,
       products,
       loading,
       traitPicks,
+      aesthetics,
       newItems,
       feedbacksSinceFetch,
       fetchingMore,
@@ -153,6 +221,7 @@ export function useProductSearch() {
       scrapeProducts,
       rerankProducts,
       applyTraitPicks,
+      toggleAesthetic,
       loadTraitProfile,
     },
   };
