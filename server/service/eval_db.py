@@ -3,7 +3,7 @@ import os
 import sqlite3
 import uuid
 
-from model.repository.constants import CREATE_TABLES_QUERY, DB, UPLOADS_PATH
+from model.repository.constants import DB, UPLOADS_PATH
 from model.repository.query import insert_query
 from model.repository.search_items import insert_search_items
 
@@ -82,29 +82,3 @@ def save_image(file_contents):
         out_file.write(file_contents)
 
     return filename
-
-
-def init():
-    connection = sqlite3.connect(DB)
-    cursor = connection.cursor()
-    cursor.executescript(CREATE_TABLES_QUERY)
-    _add_missing_columns(cursor)
-    connection.commit()
-    logger.info("Db initialized and tables successfully.")
-    return connection
-
-
-def _add_missing_columns(cursor):
-    """Apply additive migrations to databases created before a column existed.
-
-    `CREATE TABLE IF NOT EXISTS` does not alter existing tables, so new columns need
-    an explicit, idempotent ALTER for every tracked database.
-    """
-    existing = {row[1] for row in cursor.execute("PRAGMA table_info(search_items)")}
-    if "clip_embedding" not in existing:
-        cursor.execute("ALTER TABLE search_items ADD COLUMN clip_embedding BLOB")
-        logger.info("Migrated search_items: added clip_embedding column")
-    existing = {row[1] for row in cursor.execute("PRAGMA table_info(rerank_feedback)")}
-    if "aesthetic" not in existing:
-        cursor.execute("ALTER TABLE rerank_feedback ADD COLUMN aesthetic TEXT")
-        logger.info("Migrated rerank_feedback: added aesthetic column")
