@@ -58,13 +58,11 @@ function App() {
   };
 
   useEffect(() => {
-    filterActions.setSelectedColors(imageState.suggestedColours);
+    filterActions.seedColours(imageState.suggestedColours);
   }, [imageState.suggestedColours]);
 
   useEffect(() => {
-    if (imageState.suggestedCategory) {
-      filterActions.setSelectedCategory(imageState.suggestedCategory);
-    }
+    filterActions.seedCategory(imageState.suggestedCategory);
   }, [imageState.suggestedCategory]);
 
   useEffect(() => {
@@ -89,11 +87,13 @@ function App() {
         confirmedKeyword={imageState.confirmedKeyword}
         setConfirmedKeyword={imageActions.setConfirmedKeyword}
         onImageUpload={handleImageUpload}
+        analyzing={imageState.loading}
       />
 
       {imageState.showSuggestions && (
         <KeywordSuggestions
           keywords={imageState.suggestedKeywords}
+          confirmedKeyword={imageState.confirmedKeyword}
           onSelectKeyword={imageActions.selectKeyword}
         />
       )}
@@ -121,7 +121,7 @@ function App() {
         onToggle={handleToggleAesthetic}
       />
 
-      {searchState.loading && searchState.products.length === 0 && <LoadingIndicator />}
+      {searchState.searching && <LoadingIndicator />}
 
       {!searchState.loading && searchState.products.length > 0 && (
         <ActiveFiltersSummary 

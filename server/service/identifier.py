@@ -86,6 +86,8 @@ def extract_tags_from_image(image_bytes: bytes) -> dict:
 
 
 def zero_shot_classification(image: Image, candidate_tags: list[str], limit: int = 5) -> dict:
+    # Duplicate labels would get identical scores and survive into the top N twice.
+    candidate_tags = list(dict.fromkeys(candidate_tags))
     proc = get_clip_processor()
     mdl = get_clip_model()
     inputs = proc(text=candidate_tags, images=image, return_tensors="pt", padding=True)

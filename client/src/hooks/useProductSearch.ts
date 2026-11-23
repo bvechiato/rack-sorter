@@ -13,9 +13,11 @@ type Item = components['schemas']['ItemResponse'];
 const GLOBAL_FEEDBACK_ITEM_URL = 'global';
 
 export function useProductSearch() {
-  const [currentPool, setCurrentPool] = useState<Item[]>([]);
   const [products, setProducts] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
+  // Only /fetch_initial sets this: it drives the scrape overlay, including re-submits
+  // where the previous grid is still on screen. `loading` also covers rerank/feedback.
+  const [searching, setSearching] = useState(false);
   const [traitPicks, setTraitPicks] = useState<Record<string, TraitPicks>>({});
   // Aesthetics are global: one list per upload, not per item. Kept in step with the
   // server's append-only history, which is also keyed by upload.
@@ -36,8 +38,16 @@ export function useProductSearch() {
     if (!keyword.trim()) {
       throw new Error('Please provide or parse a lookup keyword first.');
     }
+    if (!uploadId) {
+      throw new Error('Upload an image before searching.');
+    }
+    const price = Number(filters.maxPrice);
+    if (filters.maxPrice !== '' && (!Number.isFinite(price) || price < 0)) {
+      throw new Error('Enter a valid non-negative price cap.');
+    }
 
     setLoading(true);
+    setSearching(true);
     try {
       const requestData = {
         uploadId: Number(uploadId),
@@ -52,7 +62,6 @@ export function useProductSearch() {
       const poolData = await fetchInitial(requestData);
       console.log(`[INFO] Sending scrape request with filters: ${JSON.stringify(requestData)}`);
 
-      setCurrentPool(poolData.pool || []);
       setProducts(poolData.pool || []);
       setTraitPicks({});
       // Feedback history is stored per upload, so a re-scrape of the same upload keeps
@@ -63,10 +72,11 @@ export function useProductSearch() {
       }
       setFeedbacksSinceFetch(0);
       clearTraitProfile();
-    } catch {
-      throw new Error('Failed fetching items with the chosen keyword.');
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Failed fetching items with the chosen keyword.');
     } finally {
       setLoading(false);
+      setSearching(false);
     }
   };
 
@@ -89,7 +99,6 @@ export function useProductSearch() {
       });
 
       setProducts(rankedData.pool || []);
-      setCurrentPool(rankedData.pool || []);
 
       if (concept) {
         setTraitPicks(prev => ({
@@ -134,7 +143,6 @@ export function useProductSearch() {
       });
 
       setProducts(rankedData.pool || []);
-      setCurrentPool(rankedData.pool || []);
       setTraitPicks(prev => ({ ...prev, [itemUrl]: picks }));
 
       setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
@@ -183,7 +191,6 @@ export function useProductSearch() {
       });
 
       setProducts(rankedData.pool || []);
-      setCurrentPool(rankedData.pool || []);
       setAesthetics(prev => (
         active
           ? prev.filter(value => value.toLowerCase() !== normalized.toLowerCase())
@@ -201,9 +208,9 @@ export function useProductSearch() {
 
   return {
     state: {
-      currentPool,
       products,
       loading,
+      searching,
       traitPicks,
       aesthetics,
       feedbacksSinceFetch,

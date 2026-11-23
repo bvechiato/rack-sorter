@@ -1,11 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function useFilters() {
   const [selectedSizes, setSelectedSizes] = useState<any[]>([]);
   const [maxPrice, setMaxPrice] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('See all');
-  const [selectedColors, setSelectedColors] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategoryState] = useState<string>('See all');
+  const [selectedColors, setSelectedColorsState] = useState<any[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<any[]>([]);
+  // Analysis suggestions are only defaults: once the user picks a category or colour,
+  // later analysis results must not replace that choice for the rest of the session.
+  // Refs so a seed called in the same batch as a user action sees the touch immediately.
+  const categoryTouched = useRef(false);
+  const coloursTouched = useRef(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -58,18 +63,39 @@ export function useFilters() {
   };
 
   const toggleColour = (colour: any) => {
+    coloursTouched.current = true;
     if (colour === "None") {
-      setSelectedColors([]);
+      setSelectedColorsState([]);
       return;
     }
 
     if (selectedColors.includes(colour)) {
-      setSelectedColors(prev => prev.filter((c: any) => c !== colour));
+      setSelectedColorsState(prev => prev.filter((c: any) => c !== colour));
       console.log(`[INFO] Removed colour: ${colour}`);
     } else {
-      setSelectedColors(prev => [...prev, colour]);
+      setSelectedColorsState(prev => [...prev, colour]);
       console.log(`[INFO] Added colour: ${colour}`);
     }
+  };
+
+  const setSelectedCategory = (value: string) => {
+    categoryTouched.current = true;
+    setSelectedCategoryState(value);
+  };
+
+  const setSelectedColors = (colours: any[]) => {
+    coloursTouched.current = true;
+    setSelectedColorsState(colours);
+  };
+
+  const seedCategory = (value: string | null) => {
+    if (!value || categoryTouched.current) return;
+    setSelectedCategoryState(value);
+  };
+
+  const seedColours = (colours: any[]) => {
+    if (coloursTouched.current) return;
+    setSelectedColorsState(colours);
   };
 
   return {
@@ -86,6 +112,8 @@ export function useFilters() {
       setSelectedCategory,
       setSelectedColors,
       setSelectedConditions,
+      seedCategory,
+      seedColours,
       toggleColour,
       toggleSize,
       toggleCondition,

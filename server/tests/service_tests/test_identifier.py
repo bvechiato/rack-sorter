@@ -47,6 +47,18 @@ def test_zero_shot_classification_filters_below_threshold(monkeypatch):
     assert result["classified_tags"] == ["shirt", "pants", "jacket"]
 
 
+def test_zero_shot_classification_deduplicates_candidates(monkeypatch):
+    monkeypatch.setattr(identifier, "processor", FakeProcessor())
+    monkeypatch.setattr(identifier, "model", FakeModel([0.9, 0.9, 0.5, 0.5]))
+
+    result = identifier.zero_shot_classification(
+        FakeImage(), ["shirt", "shirt", "jacket", "jacket"], limit=4
+    )
+
+    assert result["classified_tags"] == ["shirt", "jacket"]
+    assert len(set(identifier.CANDIDATE_TAGS)) == len(identifier.CANDIDATE_TAGS)
+
+
 def test_extract_tags_from_image_builds_expected_payload(monkeypatch):
     monkeypatch.setattr(identifier.Image, "open", lambda _image: FakeImage())
 

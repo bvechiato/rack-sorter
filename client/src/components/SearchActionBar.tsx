@@ -4,13 +4,16 @@ type Props = {
   confirmedKeyword: string;
   setConfirmedKeyword: (v: string) => void;
   onImageUpload: (file: File | null) => void;
+  analyzing: boolean;
 };
 
-const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeyword, onImageUpload }) => {
+const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeyword, onImageUpload, analyzing }) => {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
+    // Allow re-picking the same file: without this, choosing it again fires no change.
+    event.target.value = '';
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -23,7 +26,10 @@ const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeywor
 
   return (
     <div>
-      <label>Upload image or generic search keyword</label>
+      <label>
+        Upload image or generic search keyword
+        {backgroundImage && ' · click the thumbnail to change image'}
+      </label>
       <div className="search-action-bar">
         <div 
           className="upload-zone-btn" 
@@ -38,6 +44,9 @@ const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeywor
           <input
             type="file"
             accept="image/*"
+            disabled={analyzing}
+            title={backgroundImage ? 'Change image' : 'Upload image'}
+            aria-label={backgroundImage ? 'Change image' : 'Upload image'}
             onChange={handleImageUpload}
           />
         </div>
@@ -50,6 +59,12 @@ const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeywor
           />
         </div>
       </div>
+      {analyzing && (
+        <p className="analysis-progress" role="status" aria-live="polite">
+          <span className="loading-spinner" aria-hidden="true" />
+          Analyzing image… this can take a few seconds.
+        </p>
+      )}
     </div>
   );
 }
