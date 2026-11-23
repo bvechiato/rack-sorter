@@ -2,17 +2,11 @@ import React from 'react';
 
 type Props = {
   keywords: string[];
+  confirmedKeyword: string;
   onSelectKeyword: (k: string) => void;
 };
 
-const KeywordSuggestions: React.FC<Props> = ({ keywords, onSelectKeyword }) => {
-  const [selected, setSelected] = React.useState<string | undefined>(keywords[0]);
-
-  const handleSelect = (keyword: string) => {
-    setSelected(keyword);
-    onSelectKeyword(keyword);
-  };
-
+const KeywordSuggestions: React.FC<Props> = ({ keywords, confirmedKeyword, onSelectKeyword }) => {
   return (
     <div style={{ marginBottom: '16px' }}>
       <label>Or try one of these</label>
@@ -20,8 +14,8 @@ const KeywordSuggestions: React.FC<Props> = ({ keywords, onSelectKeyword }) => {
         {keywords.map((keyword) => (
           <div
             key={keyword}
-            className={`chip ${selected === keyword ? 'selected' : ''}`}
-            onClick={() => handleSelect(keyword)}
+            className={`chip ${confirmedKeyword === keyword ? 'selected' : ''}`}
+            onClick={() => onSelectKeyword(keyword)}
           >
             {keyword}
           </div>

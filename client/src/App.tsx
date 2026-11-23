@@ -95,6 +95,7 @@ function App() {
       {imageState.showSuggestions && (
         <KeywordSuggestions
           keywords={imageState.suggestedKeywords}
+          confirmedKeyword={imageState.confirmedKeyword}
           onSelectKeyword={imageActions.selectKeyword}
         />
       )}

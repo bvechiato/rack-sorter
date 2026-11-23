@@ -57,4 +57,29 @@ describe('useImageAnalysis', () => {
     expect(api.state.suggestedKeywords).toEqual(['long sleeve', 'striped']);
     expect(api.state.suggestedColours).toEqual(['Blue', 'Red']);
   });
+
+  it('hides stale suggestions while a replacement upload is in flight', async () => {
+    const file = new File(['x'], 'shirt.jpg', { type: 'image/jpeg' });
+    await act(async () => {
+      await api.actions.handleImageUpload(file);
+    });
+    expect(api.state.showSuggestions).toBe(true);
+
+    let resolveSecond: ((value: any) => void) | undefined;
+    vi.mocked(analyzeFile).mockReturnValueOnce(new Promise<any>(resolve => {
+      resolveSecond = resolve;
+    }));
+
+    await act(async () => {
+      void api.actions.handleImageUpload(file);
+    });
+    expect(api.state.showSuggestions).toBe(false);
+
+    await act(async () => {
+      resolveSecond?.({
+        upload_id: 8,
+        analysis: { archetype: 'striped', classified_tags: [], colour_archetype: 'Red' },
+      });
+    });
+  });
 });

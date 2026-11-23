@@ -13,6 +13,9 @@ export function useImageAnalysis() {
   const handleImageUpload = async (file: File | null) => {
     if (!file) return;
 
+    // A new upload starts a new session; stale suggestions must not linger, and the
+    // panel-open effect needs a fresh false -> true edge to reopen a closed panel.
+    setShowSuggestions(false);
     setLoading(true);
     try {
       const data = await analyzeFile(file);

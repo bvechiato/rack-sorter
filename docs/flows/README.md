@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs and the file input is disabled during analysis; analysis tags are deduplicated server- and client-side.
+Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs and the file input is disabled during analysis; analysis tags are deduplicated server- and client-side; suggestions reset per upload and chip highlight follows the confirmed keyword.
 
 ## System map
 
@@ -140,6 +140,7 @@ flowchart TD
 - `upload_id` exists only after a successful `/analyze`; the filter panel auto-opens when suggestions arrive.
 - While FashionCLIP runs, `SearchActionBar` shows an "Analyzing image…" status driven by `imageState.loading` and disables the file input, so uploads are single-flight and each image gets its own session.
 - Tags are deduplicated on both sides: `CANDIDATE_TAGS` has no repeats, `zero_shot_classification` collapses duplicate candidates before scoring, and the hook drops repeats before rendering chips. The archetype is also the first classified tag, so it appears once.
+- A new upload clears `showSuggestions` before analysis, so stale chips disappear and a closed filter panel can reopen on the next result. Chip highlighting is derived from `confirmedKeyword`, not local component state — typing a custom keyword updates it.
 - Keyword-only search is not supported: the client sends `0`, and `/fetch_initial` cannot load an anchor (**F1**).
 - Only the anchor's DINO and FashionCLIP vectors are stored by default; the original image is written to disk **only** with `RS_SAVE_UPLOAD_IMAGES=1` (dev), is never publicly served, and the preview uses a local `FileReader` URL. Ranking and trait steering read the stored vectors, so no file is needed in prod.
 - There are no auth or ownership checks anywhere (**F6**).
@@ -348,7 +349,7 @@ There is **no browser E2E suite**. The closest automated coverage is HTTP valida
 
 | Flow | Closest automated coverage |
 | --- | --- |
-| 01 | `tests/api_tests/test_smoke.py::test_analyze_requires_a_file`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/hooks/useImageAnalysis.test.tsx` (Vitest/jsdom): input gating and suggestion dedupe |
+| 01 | `tests/api_tests/test_smoke.py::test_analyze_requires_a_file`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/components/KeywordSuggestions.test.tsx`, `client/src/hooks/useImageAnalysis.test.tsx` (Vitest/jsdom): input gating, highlight sync and suggestion dedupe |
 | 02 | `test_smoke.py::test_fetch_initial_validates_required_fields`, `test_rank.py`, `test_scraper.py`, repository tests |
 | 03 | `test_smoke.py::test_rerank_batch_validates_required_fields`, `test_pool.py`, `test_rerank.py`, `test_feedback.py` |
 | 04 | `test_smoke.py::test_trait_profile_requires_upload_id`, `test_profile.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
