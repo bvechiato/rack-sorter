@@ -1,0 +1,17 @@
+.git
+.github
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.ruff_cache/
+client/node_modules/
+client/dist/
+server/.venv/
+server/service/static/uploads/
+**/*.db
+docs/
+**/.DS_Store
+client/.vite/
+server/tests/
+server/README.md
+server/setup.sh

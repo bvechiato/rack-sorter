@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-20** against the working tree based on commit `be27297` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook.
+Last verified: **2026-11-23** against the working tree based on commit `e35b604` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook.
 
 ## System map
 
@@ -319,10 +319,10 @@ No auth, sessions, tokens, or ownership checks exist. Upload IDs are sequential 
 | --- | --- | --- |
 | Vinted catalog HTML | `service/scraper.py` via `curl_cffi` | Non-200 → `502`. |
 | Vinted image CDN | `service/rank.py`, `service/clip_vectors.py` via `cloudscraper` | Failed downloads skip the item; a DINO batch error drops up to 16 items; an uncaught CLIP error returns 500. |
-| DINOv2 (`facebook/dinov2-base`) | `service/rank.py` | Lazy-loaded singleton. |
-| FashionCLIP (`patrickjohncyh/fashion-clip`) | `service/identifier.py`, `service/traits.py` | Lazy-loaded singleton; builds concept/axis embeddings. |
-| SQLite (`search_eval.db`) | `model/repository/*`, `service/eval_db.py` | Schema applied by Alembic in `lifespan`; no hand-written DDL in app code. |
-| Upload disk (`service/static/uploads`, dev only via `RS_SAVE_UPLOAD_IMAGES`) | `service/eval_db.py`, `service/repository.py` | Prod never writes/reads files; with the flag on, a missing file breaks legacy-row fallbacks. |
+| DINOv2 (`facebook/dinov2-base`) | `service/rank.py` | Lazy-loaded singleton; best-effort warmed in `lifespan` when `RS_WARM_MODELS=1`. |
+| FashionCLIP (`patrickjohncyh/fashion-clip`) | `service/identifier.py`, `service/traits.py` | Lazy-loaded singleton; best-effort warmed in `lifespan` when `RS_WARM_MODELS=1`; builds concept/axis embeddings. |
+| SQLite (`RS_DB_PATH`, default `search_eval.db`) | `model/repository/*`, `service/eval_db.py` | Schema applied by Alembic in `lifespan`; no hand-written DDL in app code. |
+| Upload disk (`RS_UPLOADS_PATH`, default `service/static/uploads`; dev only via `RS_SAVE_UPLOAD_IMAGES`) | `service/eval_db.py`, `service/repository.py` | Prod never writes/reads files; with the flag on, a missing file breaks legacy-row fallbacks. |
 
 ### Fault map
 

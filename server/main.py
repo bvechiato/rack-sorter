@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routes import analyze, health, search
-from config import CORS_ORIGINS
+from config import CORS_ORIGINS, WARM_MODELS
 
 
 # Keep uvicorn's INFO logs, but drop the repetitive liveness/model-discovery probes
@@ -33,6 +33,22 @@ async def lifespan(app: FastAPI):
     from alembic.config import Config
 
     command.upgrade(Config(str(Path(__file__).with_name("alembic.ini"))), "head")
+
+    if WARM_MODELS:
+        # Best-effort: a failed download must not stop the app from serving /health.
+        # The lazy getters will retry when a request actually needs the model.
+        try:
+            from service.identifier import get_clip_model, get_concept_embeddings
+            from service.rank import get_dino_model, get_dino_processor
+
+            get_dino_processor()
+            get_dino_model()
+            get_clip_model()
+            get_concept_embeddings()
+            logger.info("Models warmed; ready to serve")
+        except Exception:
+            logger.exception("Model warming failed; models will load lazily on first use")
+
     yield
 
 

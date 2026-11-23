@@ -1,11 +1,16 @@
 services:
   app:
     build: .
+    # Bound to localhost: use a Cloudflare Tunnel or a reverse proxy for public access.
+    # Override with RS_HOST / RS_PORT if port 8000 is already in use locally.
     ports:
       - "${RS_HOST:-127.0.0.1}:${RS_PORT:-8000}:8000"
     environment:
-      RS_DB_PATH: /app/data/search_eval.db
-      RS_UPLOADS_PATH: /app/data/uploads
+      RS_DB_PATH: ${RS_DB_PATH:-/app/data/search_eval.db}
+      RS_UPLOADS_PATH: ${RS_UPLOADS_PATH:-/app/data/uploads}
+      RS_CORS_ORIGINS: "${RS_CORS_ORIGINS:-*}"
+      RS_WARM_MODELS: ${RS_WARM_MODELS:-1}
+      RS_SAVE_UPLOAD_IMAGES: "${RS_SAVE_UPLOAD_IMAGES:-0}"
     volumes:
       - app-data:/app/data
       - hf-cache:/app/.cache/huggingface
