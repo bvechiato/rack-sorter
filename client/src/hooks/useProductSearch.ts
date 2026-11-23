@@ -15,6 +15,9 @@ const GLOBAL_FEEDBACK_ITEM_URL = 'global';
 export function useProductSearch() {
   const [products, setProducts] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
+  // Only /fetch_initial sets this: it drives the scrape overlay, including re-submits
+  // where the previous grid is still on screen. `loading` also covers rerank/feedback.
+  const [searching, setSearching] = useState(false);
   const [traitPicks, setTraitPicks] = useState<Record<string, TraitPicks>>({});
   // Aesthetics are global: one list per upload, not per item. Kept in step with the
   // server's append-only history, which is also keyed by upload.
@@ -44,6 +47,7 @@ export function useProductSearch() {
     }
 
     setLoading(true);
+    setSearching(true);
     try {
       const requestData = {
         uploadId: Number(uploadId),
@@ -72,6 +76,7 @@ export function useProductSearch() {
       throw err instanceof Error ? err : new Error('Failed fetching items with the chosen keyword.');
     } finally {
       setLoading(false);
+      setSearching(false);
     }
   };
 
@@ -205,6 +210,7 @@ export function useProductSearch() {
     state: {
       products,
       loading,
+      searching,
       traitPicks,
       aesthetics,
       feedbacksSinceFetch,

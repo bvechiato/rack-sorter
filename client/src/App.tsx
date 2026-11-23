@@ -123,7 +123,7 @@ function App() {
         onToggle={handleToggleAesthetic}
       />
 
-      {searchState.loading && searchState.products.length === 0 && <LoadingIndicator />}
+      {searchState.searching && <LoadingIndicator />}
 
       {!searchState.loading && searchState.products.length > 0 && (
         <ActiveFiltersSummary 

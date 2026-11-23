@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs and the file input is disabled during analysis; analysis tags are deduplicated server- and client-side; suggestions reset per upload and chip highlight follows the confirmed keyword; analysis/scrape errors keep their real detail and searches require an upload and a valid price.
+Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs and the file input is disabled during analysis; analysis tags are deduplicated server- and client-side; suggestions reset per upload and chip highlight follows the confirmed keyword; analysis/scrape errors keep their real detail and searches require an upload and a valid price; re-submits show a scrape overlay via a dedicated `searching` flag.
 
 ## System map
 
@@ -174,6 +174,7 @@ flowchart TD
 
 - Filters become Vinted query params; `See all` adds no category constraint.
 - The client rejects a missing upload or a negative price cap before calling `/fetch_initial`; the server-side **F1** remains for direct calls.
+- A dedicated `searching` flag drives the scrape overlay for the whole `/fetch_initial` call, so a re-submit shows progress over the previous grid; `loading` still covers rerank/feedback busy states.
 - DINOv2 cosine similarity ranks the pool; FashionCLIP vectors are computed at ingest for later trait steering.
 - The DB write is a background task, so feedback sent immediately after the grid appears can race it (**F2**).
 - Vinted non-200 → 502. Failed image downloads skip that item; DINO runs in batches of 16 and one bad image drops the whole batch, while an uncaught CLIP batch error fails the request (500).
@@ -349,7 +350,7 @@ There is **no browser E2E suite**. The closest automated coverage is HTTP valida
 | Flow | Closest automated coverage |
 | --- | --- |
 | 01 | `tests/api_tests/test_smoke.py::test_analyze_requires_a_file`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/components/KeywordSuggestions.test.tsx`, `client/src/hooks/useImageAnalysis.test.tsx` (Vitest/jsdom): input gating, highlight sync, dedupe and error passthrough |
-| 02 | `test_smoke.py::test_fetch_initial_validates_required_fields`, `test_rank.py`, `test_scraper.py`, repository tests; `client/src/hooks/useProductSearch.test.tsx` (Vitest/jsdom): pre-flight validation and error passthrough |
+| 02 | `test_smoke.py::test_fetch_initial_validates_required_fields`, `test_rank.py`, `test_scraper.py`, repository tests; `client/src/hooks/useProductSearch.test.tsx` (Vitest/jsdom): pre-flight validation, error passthrough and re-submit progress |
 | 03 | `test_smoke.py::test_rerank_batch_validates_required_fields`, `test_pool.py`, `test_rerank.py`, `test_feedback.py` |
 | 04 | `test_smoke.py::test_trait_profile_requires_upload_id`, `test_profile.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
 | 05 | `client/src/hooks/useFilters.test.tsx` (Vitest/jsdom): only sizes/price/conditions persist; category and colours reset on reload |

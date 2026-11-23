@@ -78,4 +78,21 @@ describe('useProductSearch.scrapeProducts validation', () => {
 
     expect((caught as Error).message).toBe('Upstream 502');
   });
+
+  it('keeps the searching flag on for the whole scrape, including a re-submit', async () => {
+    let resolveFetch: ((value: any) => void) | undefined;
+    vi.mocked(fetchInitial).mockReturnValueOnce(new Promise<any>(resolve => {
+      resolveFetch = resolve;
+    }));
+
+    await act(async () => {
+      void api.actions.scrapeProducts(1, 'striped', filters);
+    });
+    expect(api.state.searching).toBe(true);
+
+    await act(async () => {
+      resolveFetch?.({ pool: [] });
+    });
+    expect(api.state.searching).toBe(false);
+  });
 });
