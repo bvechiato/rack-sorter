@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs and the file input is disabled during analysis; analysis tags are deduplicated server- and client-side; suggestions reset per upload and chip highlight follows the confirmed keyword; analysis/scrape errors keep their real detail and searches require an upload and a valid price; re-submits show a scrape overlay via a dedicated `searching` flag; analysis seeds no longer overwrite user-picked filters; uploads are type/size checked and the picker supports re-picking.
+Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook.
 
 ## System map
 
