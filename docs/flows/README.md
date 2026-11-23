@@ -2,11 +2,11 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook.
+Last verified: **2026-11-23**, working tree at `ed84d6f`.
 
 ## System map
 
-How the browser, API, services, external systems, and shared state connect. **Routes never touch SQLite**; every read/write goes through the green service layer. Edge colours show the caller: blue = browser, purple = route → service, green = service → service/storage, orange = external fetch, red dashed = fault. Shapes: stadium = client entry, hexagon = HTTP route, subroutine = service, circle = ML model, cylinder = datastore/source.
+How the browser, routes, services, external systems and storage connect. Routes never touch SQLite; reads and writes go through services. Edge colours: blue = browser, purple = route → service, green = service → service/storage, orange = external fetch, red dashed = known limitation. Shapes: stadium = client entry, hexagon = route, subroutine = service, circle = ML model, cylinder = datastore/source.
 
 ```mermaid
 flowchart LR
@@ -103,15 +103,16 @@ flowchart LR
 
 ## Flow index
 
-| Flow | Entry points (client → server) | Related faults | E2E spec |
-| --- | --- | --- | --- |
-| [01: Image analysis](#flow-01-image-analysis-and-search-seeding) | `SearchActionBar.tsx`, `App.tsx`, `useImageAnalysis.ts`, `api.ts` → `routes/analyze.py`, `identifier.py`, `eval_db.py` | F1, F6 | **None** |
-| [02: Initial search](#flow-02-filtered-initial-search) | `PreferencesPanel.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `scraper.py`, `rank.py`, `eval_db.py` | F1, F2 | **None** |
-| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` | F5 | **None** |
-| [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `App.tsx`, `useProductSearch.ts`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `trait_scoring.py`, `aesthetic_scoring.py` | F9 | **None** |
-| [05: Preferences & session](#flow-05-preferences-and-session-state) | `useFilters.ts`, `useUIState.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` | — | **None** |
+| Flow | Entry points (client → server) |
+| --- | --- |
+| [01: Image analysis](#flow-01-image-analysis-and-search-seeding) | `SearchActionBar.tsx`, `App.tsx`, `useImageAnalysis.ts`, `api.ts` → `routes/analyze.py`, `identifier.py`, `eval_db.py` |
+| [02: Initial search](#flow-02-filtered-initial-search) | `PreferencesPanel.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `scraper.py`, `rank.py`, `eval_db.py` |
+| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` |
+| [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `rerank.py`, `trait_scoring.py`, `aesthetic_scoring.py` |
+| [05: Trait profile](#flow-05-trait-profile) | `TraitSheet.tsx`, `App.tsx`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `rerank.py` |
+| [06: Preferences & session](#flow-06-preferences-and-session-state) | `useFilters.ts`, `useUIState.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` |
 
-Path shorthand: client files are under `client/src/`, server route/service files under `server/`, and test paths under `server/tests/`.
+Path shorthand: client files are under `client/src/`, server route/service files under `server/`, test paths under `server/tests/`. There are no browser E2E specs; the closest automated coverage is listed under Verification.
 
 ## Flow 01: Image analysis and search seeding
 
@@ -135,15 +136,14 @@ flowchart TD
 
 **Gotchas & rules**
 
-- `upload_id` exists only after a successful `/analyze`; the filter panel auto-opens when suggestions arrive.
-- While FashionCLIP runs, `SearchActionBar` shows an "Analyzing image…" status driven by `imageState.loading` and disables the file input, so uploads are single-flight and each image gets its own session.
-- Tags are deduplicated on both sides: `CANDIDATE_TAGS` has no repeats, `zero_shot_classification` collapses duplicate candidates before scoring, and the hook drops repeats before rendering chips. The archetype is also the first classified tag, so it appears once.
-- A new upload clears `showSuggestions` before analysis, so stale chips disappear and a closed filter panel can reopen on the next result. Chip highlighting is derived from `confirmedKeyword`, not local component state — typing a custom keyword updates it.
-- The client rejects non-image, empty and >10 MB files before `/analyze`; the picker resets its value after each pick so the same file can be re-selected, and its label/tooltip becomes "Change image" once a preview exists.
-- Keyword-only search is rejected in the client before any request: `scrapeProducts` requires an analyzed upload. `/fetch_initial` still 500s if called directly with `uploadId: 0` (**F1**).
-- Analysis and scrape failures surface the server's error detail from `api.ts` instead of a generic "connection failure" / "failed fetching" message.
-- Only the anchor's DINO and FashionCLIP vectors are stored by default; the original image is written to disk **only** with `RS_SAVE_UPLOAD_IMAGES=1` (dev), is never publicly served, and the preview uses a local `FileReader` URL. Ranking and trait steering read the stored vectors, so no file is needed in prod.
-- There are no auth or ownership checks anywhere (**F6**).
+- `upload_id` is created by `/analyze` and arrives with suggestions and the filter panel. Uploads are single-flight — the picker is disabled during analysis. One image = one `upload_id` = one session.
+- Tag and colour suggestions are deduplicated before display; the archetype is also the first classified tag.
+- Chip highlight follows `confirmedKeyword`. A new upload clears suggestions and can reopen the filter panel.
+- Accepted uploads are images up to 10 MB; the picker supports re-selecting the same file.
+- A search needs an analyzed upload; the client rejects keyword-only input before a request. Direct `/fetch_initial` calls with `uploadId: 0` return 500 (F1).
+- API errors reach the user with the server's detail.
+- Only the anchor's DINO and FashionCLIP vectors are stored by default. The image file is written only with `RS_SAVE_UPLOAD_IMAGES=1` (dev), is never publicly served, and the preview is a local `FileReader` URL. Ranking and trait steering use the stored vectors.
+- There are no auth or ownership checks (F6).
 
 ## Flow 02: Filtered initial search
 
@@ -174,11 +174,10 @@ flowchart TD
 **Gotchas & rules**
 
 - Filters become Vinted query params; `See all` adds no category constraint.
-- The client rejects a missing upload or a negative price cap before calling `/fetch_initial`; the server-side **F1** remains for direct calls.
-- A dedicated `searching` flag drives the scrape overlay for the whole `/fetch_initial` call, so a re-submit shows progress over the previous grid; `loading` still covers rerank/feedback busy states.
+- The scrape overlay is driven by a `searching` flag, separate from `loading` (rerank/feedback).
 - DINOv2 cosine similarity ranks the pool; FashionCLIP vectors are computed at ingest for later trait steering.
-- The DB write is a background task, so feedback sent immediately after the grid appears can race it (**F2**).
-- Vinted non-200 → 502. Failed image downloads skip that item; DINO runs in batches of 16 and one bad image drops the whole batch, while an uncaught CLIP batch error fails the request (500).
+- The DB write is a background task, so immediate feedback can race it (F2).
+- Vinted non-200 → 502. Failed image downloads skip the item; DINO runs in batches of 16 and one bad image drops the whole batch, while an uncaught CLIP batch error fails the request (500).
 
 ## Flow 03: More / Less feedback
 
@@ -217,59 +216,78 @@ sequenceDiagram
 
 - One tap = one event with `concept: null`; the client resets its counter whenever it asks for a page, even if zero items arrive.
 - Page fetch is fail-soft: failures rank the existing pool; the in-process cursor walks pages 2–8.
-- The server replays the **entire feedback history for the upload**, not just the latest event; per-phrase and per-trait dedupe happens when the history is folded.
-- **Decision:** the reference image (`upload_id`) is the session. Re-searching with a different keyword or filters on the same upload keeps all steering — More/Less and style phrases carry into the new pool, while a trait pick only matters if its item reappears. Only a new upload starts clean (#42). Undoing or removing feedback within a session is tracked in #17.
-- The page cursor does not survive a restart (**F5**).
+- Feedback is keyed by `upload_id` and replayed in full on every rerank; per-phrase and per-trait dedupe happens when the history is folded.
+- The reference image (`upload_id`) defines the session. Re-searching with a different keyword or filters keeps prior steering: More/Less and style phrases carry into the new pool, while a trait pick only applies if its item reappears. A new upload begins a new session.
+- The page cursor does not survive a restart (F5).
 
 ## Flow 04: Trait tuning (Tune sheet) + style strip
 
-Steer results along fixed physical traits via the Tune sheet, or absolute free-text style phrases via the global StyleStrip; inspect the debug radar.
+Steer results along fixed physical traits via the Tune sheet, or absolute free-text style phrases via the global StyleStrip.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant UI as StyleStrip + TraitSheet
     participant API as FastAPI
-    participant P as profile
-    participant ML as CLIP + scorer
-    participant DB as SQLite
+    participant ML as Rerank + CLIP
 
-    UI->>API: GET /trait-profile
-    API->>P: build_trait_profile
-    P->>DB: anchor + pool
-    P->>ML: ensure CLIP vectors, project axes
-    alt vectors available
-        ML-->>P: mean / std / anchor / item
-        P-->>API: profile
-        API-->>UI: profile
-    else missing anchor or CLIP vector
-        P-->>API: 500
-        API-->>UI: 500 → axes unavailable
-    end
-    Note over P: F9 profile 500 → axes unavailable
-    Note over UI: StyleStrip: tap chip → POST /rerank_batch now
+    Note over UI: StyleStrip - tap chip sends POST /rerank_batch now
     UI->>API: POST /rerank_batch (aesthetic events)
     API->>ML: rerank: aesthetic lane
     ML-->>API: ranked pool
     API-->>UI: pool
-    Note over ML: aesthetic: last write wins per phrase; absolute (no clicked item)
-    Note over UI: Tune sheet: queue physical picks; Done → POST /rerank_batch
+    Note over ML: aesthetic - last write wins per phrase, absolute, no clicked item
+    Note over UI: Tune sheet - queue physical picks, Done sends POST /rerank_batch
     UI->>API: POST /rerank_batch (trait events)
     API->>ML: rerank: trait fold
     ML-->>API: ranked pool
     API-->>UI: pool
-    Note over ML: physical: last write wins per item + concept
+    Note over ML: physical - last write wins per item + concept
 ```
 
 **Gotchas & rules**
 
-- Closed vocabulary: `sleeves`, `neckline`, `length`, `pattern`, `fit`; unknown concepts fail validation. Aesthetic events carry a free-text `aesthetic` phrase (new `rerank_feedback.aesthetic` column); the aesthetic lane is absolute — direction comes from the phrase, not the clicked item.
+- Closed vocabulary: `sleeves`, `neckline`, `length`, `pattern`, `fit`; unknown concepts fail validation. Aesthetic events carry a free-text `aesthetic` phrase in `rerank_feedback`; the aesthetic lane is absolute — direction comes from the phrase, not the clicked item.
 - The strip reranks immediately on tap (no queue): tapping an active chip off sends `LESS`, which removes the phrase; a later `MORE` re-enables it.
 - The sheet queues physical picks locally and sends them on **Done**; no picks simply closes.
 - Last write wins per `(item_url, concept)` for physical events and per phrase for aesthetic events. Physical projections are clipped to ±3, weighted `0.45` / `0.60`; aesthetic adjustments use `W_AESTHETIC = 0.45`; both share the ±0.8 per-item clamp. When the last aesthetic phrase is removed, the lane leaves the pool untouched — the base scores stand.
-- Physical and visual lanes stay separate: aesthetic events never feed the visual intent vector; flat axes, blank phrases and missing CLIP vectors skip the event (physical and aesthetic share the spread/skip policy). A profile failure only disables the debug axes (**F9**).
+- Physical and visual lanes stay separate: aesthetic events never feed the visual intent vector; flat axes, blank phrases and missing CLIP vectors skip the event (physical and aesthetic share the spread/skip policy).
 
-## Flow 05: Preferences and session state
+## Flow 05: Trait profile
+
+Read-only debug projection of the scorer's trait axes for the current pool. Reranking does not depend on it.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant UI as TraitSheet
+    participant API as FastAPI
+    participant P as profile
+    participant DB as SQLite
+    participant ML as CLIP + axes
+
+    UI->>API: GET /trait-profile on sheet open
+    API->>P: build_trait_profile
+    P->>DB: read latest query and anchor
+    P->>ML: ensure CLIP vectors, project axes
+    alt vectors available
+        ML-->>P: anchor and item axis scores
+        P-->>API: profile
+        API-->>UI: radar
+    else missing anchor or CLIP vectors
+        P-->>API: 500
+        API-->>UI: axes unavailable
+    end
+    Note over P: F9 profile failure leaves ranking untouched
+```
+
+**Gotchas & rules**
+
+- Projects stored anchor and item CLIP vectors onto fixed axes; no feedback history is folded in.
+- Loaded when the Tune sheet opens and refreshed after applying picks. It feeds only the debug radar, not the ranking.
+- A missing anchor or missing candidate CLIP vectors makes `/trait-profile` fail (F9); the sheet still works and shows axes unavailable.
+
+## Flow 06: Preferences and session state
 
 What filter state survives analysis, searches, and reloads.
 
@@ -290,9 +308,8 @@ flowchart TD
 
 **Gotchas & rules**
 
-- Sizes, price, and conditions persist in `localStorage`; category and colours are intentionally session-only — each analysis re-seeds them.
-- Analysis results only *seed* category and colours: once the user picks either, later results leave that choice alone for the rest of the session.
-- A new search keeps filters and the upload's server-side feedback history; it clears results, the local trait-pick UI state, the fetch counter, and the profile (see the session decision in Flow 03).
+- Sizes, price and conditions persist in `localStorage`. Category and colours are session-only: analysis seeds them until the user picks one.
+- A new search keeps filters and the upload's feedback history; it clears results, local trait-pick state, the fetch counter and the profile.
 - `ActiveFiltersSummary` receives App's live filter state as a prop, so it tracks in-session edits.
 
 ## Integration & fault map
@@ -301,17 +318,17 @@ flowchart TD
 
 | Method | Path | Handler | Client caller | Notes |
 | --- | --- | --- | --- | --- |
-| `GET` | `/health` | `api/routes/health.py` | none | Cheap liveness probe. |
-| `POST` | `/analyze` | `api/routes/analyze.py` | `analyzeFile` | Multipart file; persists upload + CLIP tags. |
+| `GET` | `/health` | `api/routes/health.py` | none | Liveness probe. |
+| `POST` | `/analyze` | `api/routes/analyze.py` | `analyzeFile` | Multipart file; persists upload and CLIP tags. |
 | `POST` | `/fetch_initial` | `api/routes/search.py` | `fetchInitial` | Scrapes, ranks, returns pool; DB write is async. |
 | `POST` | `/rerank` | `api/routes/search.py` | none | Legacy single-event endpoint. |
-| `POST` | `/rerank_batch` | `api/routes/search.py` | `rerankBatch` | Current client feedback path. |
+| `POST` | `/rerank_batch` | `api/routes/search.py` | `rerankBatch` | Client feedback path. |
 | `GET` | `/trait-profile` | `api/routes/search.py` | `fetchTraitProfile` | Debug projections; needs anchor + candidate CLIP vectors. |
 | `GET` | `/` | `server/main.py` | browser | Returns `index.html` from the server working directory. |
 | `GET` | `/manifest.json` | `server/main.py` | browser | Returns `manifest.json` from the server working directory. |
 | `GET` | `/assets/*` | `server/main.py` | browser | Mounted only when `dist/assets` exists. |
 
-No auth, sessions, tokens, or ownership checks exist. Upload IDs are sequential integers accepted from the client (**F6**).
+No auth, sessions, tokens, or ownership checks exist. Upload IDs are sequential integers accepted from the client (F6).
 
 ### External boundaries
 
@@ -326,19 +343,19 @@ No auth, sessions, tokens, or ownership checks exist. Upload IDs are sequential 
 
 ### Fault map
 
-Grouped by what the user experiences. Fault IDs match the red markers, layer annotations, and `Note over` labels in the diagrams.
+Red markers, layer annotations and `Note over` labels use these IDs.
 
-| ID | Area | What breaks | Fix direction |
-| --- | --- | --- | --- |
-| **F1** | Search & upload | Direct `/fetch_initial` calls with `uploadId: 0` still 500; keyword-only search is now blocked client-side | Support keyword-only search with a text anchor. |
-| **F2** | Search & upload | `/fetch_initial` returns before `save_query_to_db`; immediate feedback can 500 | Await the write or return a query ID the client sends back. |
-| **F5** | Feedback & ranking | Page cursor is in-process and capped at page 8 | Persist the cursor or document single-process behavior. |
-| **F6** | Security | No auth/ownership checks; upload IDs are enumerable | Add session/ownership checks before any multi-user deployment. |
-| **F9** | Feedback & ranking | `/trait-profile` 500s when CLIP vectors are missing; legacy backfill is synchronous | Backfill at ingest or async; keep the axes-unavailable fallback. |
+| ID | Area | Limitation |
+| --- | --- | --- |
+| **F1** | Search & upload | Direct `/fetch_initial` calls with `uploadId: 0` return 500. |
+| **F2** | Search & upload | `/fetch_initial` returns before the DB write; immediate feedback can race it. |
+| **F5** | Feedback & ranking | Page cursor is in-process and capped at page 8. |
+| **F6** | Security | No auth or ownership checks; upload IDs are enumerable. |
+| **F9** | Trait profile | `/trait-profile` fails when CLIP vectors are missing. |
 
 ## Verification & harness
 
-The rule lives in `AGENTS.md`, so it is applied to every prompt. CI has one narrow check: a PR that changes `server/api/`, `server/main.py`, or `client/src/api.ts` must also change this file. It is a coupling proxy, not a diagram validator; keeping the diagrams accurate is still the agent's job. This file owns system truth only.
+`AGENTS.md` applies this file to every prompt. CI requires a change here when `server/api/`, `server/main.py` or `client/src/api.ts` changes — a coupling proxy, not a diagram validator.
 
 Run the repository checks:
 
@@ -347,15 +364,16 @@ cd server && .venv/bin/python -m ruff check . && .venv/bin/python -m pytest test
 cd client && npm test && npm run lint && npm run typecheck && npm run build
 ```
 
-There is **no browser E2E suite**. The closest automated coverage is HTTP validation, service-level unit tests, and a small Vitest/jsdom test for the client's session-state contract:
+There is **no browser E2E suite**. Closest automated coverage:
 
 | Flow | Closest automated coverage |
 | --- | --- |
-| 01 | `tests/api_tests/test_smoke.py::test_analyze_requires_a_file`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/components/KeywordSuggestions.test.tsx`, `client/src/hooks/useImageAnalysis.test.tsx` (Vitest/jsdom): input gating, highlight sync, dedupe, validation and error passthrough |
-| 02 | `test_smoke.py::test_fetch_initial_validates_required_fields`, `test_rank.py`, `test_scraper.py`, repository tests; `client/src/hooks/useProductSearch.test.tsx` (Vitest/jsdom): pre-flight validation, error passthrough and re-submit progress |
-| 03 | `test_smoke.py::test_rerank_batch_validates_required_fields`, `test_pool.py`, `test_rerank.py`, `test_feedback.py` |
-| 04 | `test_smoke.py::test_trait_profile_requires_upload_id`, `test_profile.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
-| 05 | `client/src/hooks/useFilters.test.tsx` (Vitest/jsdom): only sizes/price/conditions persist, category/colours reset on reload, and analysis seeds yield to user picks |
+| 01 | `tests/api_tests/test_smoke.py`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/components/KeywordSuggestions.test.tsx`, `client/src/hooks/useImageAnalysis.test.tsx` |
+| 02 | `test_smoke.py`, `test_rank.py`, `test_scraper.py`, repository tests; `client/src/hooks/useProductSearch.test.tsx` |
+| 03 | `test_smoke.py`, `test_pool.py`, `test_rerank.py`, `test_feedback.py` |
+| 04 | `test_smoke.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
+| 05 | `test_smoke.py`, `test_profile.py` |
+| 06 | `client/src/hooks/useFilters.test.tsx` |
 
 <details>
 <summary>Manual UI smoke checklist</summary>
@@ -365,11 +383,12 @@ There is **no browser E2E suite**. The closest automated coverage is HTTP valida
 3. Apply filters → ranked grid + active-filter summary.
 4. Tap More/Less twice → rerank without a page fetch; counter decrements.
 5. Tap a third time → fetch + rerank; counter resets.
-6. Open Tune → radar loads; queue traits → Done → rerank, picks persist, sheet closes.
-7. Reopen Tune for the same item → applied picks are mirrored.
-8. Style strip → below the filters: tap a chip → pool reranks, chip becomes active (✕);
+6. Open Tune → debug radar loads; if the profile fails, the sheet still opens with axes unavailable.
+7. Queue traits → Done → rerank, picks persist, sheet closes.
+8. Reopen Tune for the same item → applied picks are mirrored.
+9. Style strip → below the filters: tap a chip → pool reranks, chip becomes active (✕);
    tap again → removed; "＋ more" reveals the preset list + free-text field.
-9. Stop the backend and retry → toast/sheet error path.
+10. Stop the backend and retry → toast/sheet error path.
 
 Record which steps actually ran. Do not claim an E2E pass from unit tests alone.
 

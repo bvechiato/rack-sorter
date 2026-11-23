@@ -12,6 +12,8 @@ This applies to every task that changes runtime behavior (routes, state, integra
 
 `Last verified` is a short scope statement of when and against what the README was checked. Do not append a list of changes made in the task; refresh only the date and commit when the verification target moves.
 
+The flow README describes current design decisions and limits, not change history. Do not record issue numbers, past bugs, or how something was fixed; state what holds now so a developer can orient without reconstructing the change sequence.
+
 Diagram rules: 8–14 nodes per flow, 12–18 for the system map. Short labels; detail goes in Gotchas. Never draw planned behavior as if it exists.
 
 Do not invent E2E coverage. This repository has no browser E2E suite; use the manual checklist and coverage table in `docs/flows/README.md`.
