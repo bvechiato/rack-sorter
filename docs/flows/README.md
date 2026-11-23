@@ -218,6 +218,7 @@ sequenceDiagram
 - One tap = one event with `concept: null`; the client resets its counter whenever it asks for a page, even if zero items arrive.
 - Page fetch is fail-soft: failures rank the existing pool; the in-process cursor walks pages 2–8.
 - The server replays the **entire feedback history for the upload**, not just the latest event; per-phrase and per-trait dedupe happens when the history is folded.
+- **Decision:** the reference image (`upload_id`) is the session. Re-searching with a different keyword or filters on the same upload keeps all steering — More/Less and style phrases carry into the new pool, while a trait pick only matters if its item reappears. Only a new upload starts clean (#42). Undoing or removing feedback within a session is tracked in #17.
 - The page cursor does not survive a restart (**F5**).
 
 ## Flow 04: Trait tuning (Tune sheet) + style strip
@@ -291,7 +292,7 @@ flowchart TD
 
 - Sizes, price, and conditions persist in `localStorage`; category and colours are intentionally session-only — each analysis re-seeds them.
 - Analysis results only *seed* category and colours: once the user picks either, later results leave that choice alone for the rest of the session.
-- A new search keeps filters but clears results, trait picks, the fetch counter, and the profile.
+- A new search keeps filters and the upload's server-side feedback history; it clears results, the local trait-pick UI state, the fetch counter, and the profile (see the session decision in Flow 03).
 - `ActiveFiltersSummary` receives App's live filter state as a prop, so it tracks in-session edits.
 
 ## Integration & fault map
