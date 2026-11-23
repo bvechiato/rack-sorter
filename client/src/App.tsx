@@ -58,13 +58,11 @@ function App() {
   };
 
   useEffect(() => {
-    filterActions.setSelectedColors(imageState.suggestedColours);
+    filterActions.seedColours(imageState.suggestedColours);
   }, [imageState.suggestedColours]);
 
   useEffect(() => {
-    if (imageState.suggestedCategory) {
-      filterActions.setSelectedCategory(imageState.suggestedCategory);
-    }
+    filterActions.seedCategory(imageState.suggestedCategory);
   }, [imageState.suggestedCategory]);
 
   useEffect(() => {

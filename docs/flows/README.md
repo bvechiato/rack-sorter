@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs and the file input is disabled during analysis; analysis tags are deduplicated server- and client-side; suggestions reset per upload and chip highlight follows the confirmed keyword; analysis/scrape errors keep their real detail and searches require an upload and a valid price; re-submits show a scrape overlay via a dedicated `searching` flag.
+Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs and the file input is disabled during analysis; analysis tags are deduplicated server- and client-side; suggestions reset per upload and chip highlight follows the confirmed keyword; analysis/scrape errors keep their real detail and searches require an upload and a valid price; re-submits show a scrape overlay via a dedicated `searching` flag; analysis seeds no longer overwrite user-picked filters.
 
 ## System map
 
@@ -289,7 +289,7 @@ flowchart TD
 **Gotchas & rules**
 
 - Sizes, price, and conditions persist in `localStorage`; category and colours are intentionally session-only — each analysis re-seeds them.
-- Analysis can overwrite a category/colour chosen before the upload.
+- Analysis results only *seed* category and colours: once the user picks either, later results leave that choice alone for the rest of the session.
 - A new search keeps filters but clears results, trait picks, the fetch counter, and the profile.
 - `ActiveFiltersSummary` receives App's live filter state as a prop, so it tracks in-session edits.
 
@@ -353,7 +353,7 @@ There is **no browser E2E suite**. The closest automated coverage is HTTP valida
 | 02 | `test_smoke.py::test_fetch_initial_validates_required_fields`, `test_rank.py`, `test_scraper.py`, repository tests; `client/src/hooks/useProductSearch.test.tsx` (Vitest/jsdom): pre-flight validation, error passthrough and re-submit progress |
 | 03 | `test_smoke.py::test_rerank_batch_validates_required_fields`, `test_pool.py`, `test_rerank.py`, `test_feedback.py` |
 | 04 | `test_smoke.py::test_trait_profile_requires_upload_id`, `test_profile.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
-| 05 | `client/src/hooks/useFilters.test.tsx` (Vitest/jsdom): only sizes/price/conditions persist; category and colours reset on reload |
+| 05 | `client/src/hooks/useFilters.test.tsx` (Vitest/jsdom): only sizes/price/conditions persist, category/colours reset on reload, and analysis seeds yield to user picks |
 
 <details>
 <summary>Manual UI smoke checklist</summary>

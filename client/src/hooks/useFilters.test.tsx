@@ -85,4 +85,23 @@ describe('useFilters session state', () => {
     expect(api.filters.maxPrice).toBe('75');
     expect(api.filters.selectedConditions).toEqual(['Used']);
   });
+
+  it('applies analysis seeds only until the user picks a category or colour', () => {
+    act(() => {
+      api.actions.seedCategory('Dresses');
+      api.actions.seedColours(['Blue', 'Red']);
+    });
+    expect(api.filters.selectedCategory).toBe('Dresses');
+    expect(api.filters.selectedColors).toEqual(['Blue', 'Red']);
+
+    act(() => {
+      api.actions.setSelectedCategory('Tops');
+      api.actions.setSelectedColors(['Green']);
+      api.actions.seedCategory('Outerwear');
+      api.actions.seedColours(['Black']);
+    });
+
+    expect(api.filters.selectedCategory).toBe('Tops');
+    expect(api.filters.selectedColors).toEqual(['Green']);
+  });
 });
