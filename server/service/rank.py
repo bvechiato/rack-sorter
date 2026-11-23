@@ -9,6 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoImageProcessor, AutoModel
 
 from config import DINO_MODEL_ID as MODEL_ID
+from config import SAVE_UPLOAD_IMAGES
 from dtos import SearchItem
 from model.repository.user_uploads import get_embedding_by_upload_id, insert_embedding_for_upload
 
@@ -56,6 +57,9 @@ def _anchor_array(upload_id: int) -> np.ndarray:
         if anchor_features is None:
             raise ValueError("missing anchor embedding")
     except Exception:
+        if not SAVE_UPLOAD_IMAGES:
+            raise  # no image file in prod; the stored vector is the only source
+        # Legacy dev rows created before vectors were stored at upload time.
         anchor_bytes = get_upload_bytes_by_id(upload_id)
         anchor_features = process_and_normalise(anchor_bytes)
         insert_embedding_for_upload(upload_id, anchor_features.squeeze().numpy().tolist())

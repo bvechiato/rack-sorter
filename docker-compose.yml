@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${RS_HOST:-127.0.0.1}:${RS_PORT:-8000}:8000"
+    environment:
+      RS_DB_PATH: /app/data/search_eval.db
+      RS_UPLOADS_PATH: /app/data/uploads
+    volumes:
+      - app-data:/app/data
+      - hf-cache:/app/.cache/huggingface
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  hf-cache:

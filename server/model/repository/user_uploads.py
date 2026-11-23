@@ -41,3 +41,32 @@ def insert_embedding_for_upload(upload_id: int, embedding: list[float]):
             "UPDATE user_uploads SET embedding = ? WHERE id = ?",
             (embedding_bytes, upload_id),
         )
+
+
+def insert_user_upload(image_path: str | None, embedding: list[float], clip_embedding: list[float]) -> int:
+    """Create an upload row with both anchor vectors; image_path is optional."""
+    dino_bytes = np.asarray(embedding, dtype=np.float32).tobytes()
+    clip_bytes = np.asarray(clip_embedding, dtype=np.float32).tobytes()
+    with db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO user_uploads (image_path, embedding, clip_embedding)
+            VALUES (?, ?, ?)
+            """,
+            (image_path, dino_bytes, clip_bytes),
+        )
+        return cursor.lastrowid
+
+
+def get_clip_embedding_by_upload_id(upload_id: int):
+    """Return the stored FashionCLIP anchor as a 512-d float32 array, or None."""
+    with db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT clip_embedding FROM user_uploads WHERE id = ?", (upload_id,))
+        result = cursor.fetchone()
+
+    if not result or result[0] is None:
+        return None
+    return np.frombuffer(result[0], dtype=np.float32)
+
