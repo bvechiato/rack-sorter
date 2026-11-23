@@ -39,6 +39,7 @@ const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeywor
           <input
             type="file"
             accept="image/*"
+            disabled={analyzing}
             onChange={handleImageUpload}
           />
         </div>
