@@ -17,9 +17,9 @@ const KeywordSuggestions: React.FC<Props> = ({ keywords, onSelectKeyword }) => {
     <div style={{ marginBottom: '16px' }}>
       <label>Or try one of these</label>
       <div className="condition-chips">
-        {keywords.map((keyword, index) => (
+        {keywords.map((keyword) => (
           <div
-            key={index}
+            key={keyword}
             className={`chip ${selected === keyword ? 'selected' : ''}`}
             onClick={() => handleSelect(keyword)}
           >

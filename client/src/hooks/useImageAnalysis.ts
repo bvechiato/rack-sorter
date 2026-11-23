@@ -20,11 +20,13 @@ export function useImageAnalysis() {
       setUploadId(data.upload_id);
       setConfirmedKeyword(analysis.archetype);
 
-      // Build unique keywords (filter out color-related ones)
-      const rawKeywords = [...(analysis.classified_tags || [])];
+      // The archetype is also the first classified tag; duplicates would render twice.
+      const rawKeywords = [...new Set(analysis.classified_tags || [])];
       setSuggestedKeywords(rawKeywords);
       setShowSuggestions(true);
-      setSuggestedColours([analysis.colour_archetype, ...(analysis.colour_classified_tags || [])]);
+      setSuggestedColours([
+        ...new Set([analysis.colour_archetype, ...(analysis.colour_classified_tags || [])]),
+      ]);
       setSuggestedCategory(analysis.category_archetype);
     } catch {
       throw new Error('Connection failure to local Python host engine');

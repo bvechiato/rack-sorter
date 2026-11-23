@@ -53,9 +53,7 @@ CANDIDATE_TAGS = [
     "paisley",
     "camouflage",
     "ruched waist",
-    "peplum",
     "collared",
-    "long sleeve",
 ]
 
 VINTED_COLOUR_MAP = {
