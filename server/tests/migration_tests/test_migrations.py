@@ -4,6 +4,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 
 import config
 
@@ -61,7 +62,7 @@ def test_upgrade_is_idempotent(tmp_path, monkeypatch):
 
     with sqlite3.connect(db) as conn:
         version = conn.execute("SELECT version_num FROM alembic_version").fetchone()[0]
-    assert version == "0001"
+    assert version == ScriptDirectory.from_config(cfg).get_current_head()
 
 
 def test_app_startup_applies_migrations(tmp_path, monkeypatch):

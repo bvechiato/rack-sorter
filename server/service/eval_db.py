@@ -3,9 +3,11 @@ import os
 import sqlite3
 import uuid
 
+from config import SAVE_UPLOAD_IMAGES
 from model.repository.constants import DB, UPLOADS_PATH
 from model.repository.query import insert_query
 from model.repository.search_items import insert_search_items
+from model.repository.user_uploads import insert_user_upload
 
 logger = logging.getLogger(__name__)
 
@@ -54,15 +56,20 @@ def save_clip_analysis(cursor, upload_id, tags_dict):
     cursor.execute(INSERT_INTO_QUERY, (upload_id, tags_dict["category_archetype"], "category_archetype"))
 
 
-def save_user_upload(file_contents: bytes, tags_dict: dict):
-    image_path = save_image(file_contents)
+def save_user_upload(file_contents: bytes, tags_dict: dict, embedding: list[float], clip_embedding: list[float]):
+    # The image file is a dev-only debug artifact; the embeddings are the source of truth.
+    image_path = None
+    if SAVE_UPLOAD_IMAGES:
+        try:
+            image_path = save_image(file_contents)
+        except OSError as e:
+            logger.warning("Could not save debug upload image: %s", e)
+
+    upload_id = insert_user_upload(image_path, embedding, clip_embedding)
+    logger.info("User upload saved with ID: %s and path: %s", upload_id, image_path)
+
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
-
-    cursor.execute("INSERT INTO user_uploads (image_path) VALUES (?)", (image_path,))
-    upload_id = cursor.lastrowid
-    logger.info(f"User upload saved with ID: {upload_id} and path: {image_path}")
-
     save_clip_analysis(cursor, upload_id, tags_dict)
     logger.info(f"CLIP analysis tags saved for upload ID: {upload_id}")
 

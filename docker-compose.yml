@@ -10,6 +10,7 @@ services:
       RS_UPLOADS_PATH: ${RS_UPLOADS_PATH:-/app/data/uploads}
       RS_CORS_ORIGINS: "${RS_CORS_ORIGINS:-*}"
       RS_WARM_MODELS: ${RS_WARM_MODELS:-1}
+      RS_SAVE_UPLOAD_IMAGES: "${RS_SAVE_UPLOAD_IMAGES:-0}"
     volumes:
       - app-data:/app/data
       - hf-cache:/app/.cache/huggingface

@@ -5,7 +5,9 @@ import threading
 
 import numpy as np
 
+from config import SAVE_UPLOAD_IMAGES
 from dtos import SearchItem
+from model.repository.user_uploads import get_clip_embedding_by_upload_id
 
 logger = logging.getLogger(__name__)
 
@@ -27,17 +29,29 @@ def get_anchor_clip_embedding(upload_id: int):
         return _anchor_cache[upload_id]
 
     try:
-        from service.identifier import get_single_clip_embedding
-        from service.repository import get_upload_bytes_by_id
-
-        vector = get_single_clip_embedding(get_upload_bytes_by_id(upload_id))
+        vector = get_clip_embedding_by_upload_id(upload_id)
+        if vector is None:
+            raise ValueError("missing anchor CLIP vector")
         if vector.shape != (CLIP_DIM,):
             raise ValueError(f"expected {CLIP_DIM}-d CLIP vector, got {vector.shape}")
-        _anchor_cache[upload_id] = vector
-        return vector
     except Exception as e:
-        logger.warning("Could not compute anchor CLIP embedding for upload %d: %s", upload_id, e)
-        return None
+        if not SAVE_UPLOAD_IMAGES:
+            logger.warning("No stored anchor CLIP embedding for upload %d: %s", upload_id, e)
+            return None
+        # Legacy dev rows created before the anchor vector was stored at upload time.
+        try:
+            from service.identifier import get_single_clip_embedding
+            from service.repository import get_upload_bytes_by_id
+
+            vector = get_single_clip_embedding(get_upload_bytes_by_id(upload_id))
+            if vector.shape != (CLIP_DIM,):
+                raise ValueError(f"expected {CLIP_DIM}-d CLIP vector, got {vector.shape}")
+        except Exception as fallback_error:
+            logger.warning("Could not compute anchor CLIP embedding for upload %d: %s", upload_id, fallback_error)
+            return None
+
+    _anchor_cache[upload_id] = vector
+    return vector
 
 
 def ensure_clip_embeddings(items, upload_id: int):

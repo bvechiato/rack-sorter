@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-20** against the working tree based on commit `be27297` — Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook.
+Last verified: **2026-11-23** against the working tree based on commit `e35b604` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook.
 
 ## System map
 
@@ -50,12 +50,11 @@ flowchart LR
 
     subgraph Storage["Storage · grey"]
         DB[("SQLite")]
-        FS[("uploads/ disk")]
+        FS[("uploads/ (dev only)")]
     end
 
     F1["⚠ F1 uploadId=0 → 500"]
     F2["⚠ F2 background DB write race"]
-    F3["⚠ F3 feedback global per upload"]
 
     UI --> API
     API --> AN
@@ -79,13 +78,12 @@ flowchart LR
     PR --> CL
     PR --> EV
     EV <-->|anchor, pool, feedback| DB
-    EV --> FS
+    EV -->|dev only| FS
 
     SC --> VI
 
     F1 -.-> FI
     F2 -.-> EV
-    F3 -.-> FD
     RR --> AL
     AL --> RR
 
@@ -94,13 +92,13 @@ flowchart LR
     class EV,SC,DN,CL,FD,PR service
     class VI external
     class DB,FS storage
-    class F1,F2,F3 fault
+    class F1,F2 fault
 
     linkStyle 0,1,2,3,4 stroke:#4aa3ff,stroke-width:2px
-    linkStyle 5,6,7,8,9,10,25 stroke:#a78bfa,stroke-width:2px
-    linkStyle 11,12,13,14,15,16,17,18,19,20,26 stroke:#34d399,stroke-width:2px
+    linkStyle 5,6,7,8,9,10,24 stroke:#a78bfa,stroke-width:2px
+    linkStyle 11,12,13,14,15,16,17,18,19,20,25 stroke:#34d399,stroke-width:2px
     linkStyle 21 stroke:#fb923c,stroke-width:2px
-    linkStyle 22,23,24 stroke:#ff5a5a,stroke-width:2px,stroke-dasharray: 5 3
+    linkStyle 22,23 stroke:#ff5a5a,stroke-width:2px,stroke-dasharray: 5 3
 ```
 
 ## Flow index
@@ -109,8 +107,8 @@ flowchart LR
 | --- | --- | --- | --- |
 | [01: Image analysis](#flow-01-image-analysis-and-search-seeding) | `SearchActionBar.tsx`, `App.tsx`, `useImageAnalysis.ts`, `api.ts` → `routes/analyze.py`, `identifier.py`, `eval_db.py` | F1, F6 | **None** |
 | [02: Initial search](#flow-02-filtered-initial-search) | `PreferencesPanel.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `scraper.py`, `rank.py`, `eval_db.py` | F1, F2 | **None** |
-| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` | F3, F5 | **None** |
-| [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `App.tsx`, `useProductSearch.ts`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `trait_scoring.py`, `aesthetic_scoring.py` | F3, F9 | **None** |
+| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` | F5 | **None** |
+| [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `App.tsx`, `useProductSearch.ts`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `trait_scoring.py`, `aesthetic_scoring.py` | F9 | **None** |
 | [05: Preferences & session](#flow-05-preferences-and-session-state) | `useFilters.ts`, `useUIState.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` | F7 | **None** |
 
 Path shorthand: client files are under `client/src/`, server route/service files under `server/`, and test paths under `server/tests/`.
@@ -125,7 +123,7 @@ flowchart TD
 
     U[Upload image] --> A[POST /analyze]
     A --> C[FashionCLIP zero-shot]
-    C --> S[(SQLite + uploads/)]
+    C --> S[(SQLite: upload + vectors)]
     S --> R[upload_id + tags]
     R --> K[Seed keyword / colour / category]
     K --> P[Open filters]
@@ -141,7 +139,7 @@ flowchart TD
 
 - `upload_id` exists only after a successful `/analyze`; the filter panel auto-opens when suggestions arrive.
 - Keyword-only search is not supported: the client sends `0`, and `/fetch_initial` cannot load an anchor (**F1**).
-- Uploaded files are stored on disk but are not publicly served; the preview is a local `FileReader` URL.
+- Only the anchor's DINO and FashionCLIP vectors are stored by default; the original image is written to disk **only** with `RS_SAVE_UPLOAD_IMAGES=1` (dev), is never publicly served, and the preview uses a local `FileReader` URL. Ranking and trait steering read the stored vectors, so no file is needed in prod.
 - There are no auth or ownership checks anywhere (**F6**).
 
 ## Flow 02: Filtered initial search
@@ -208,7 +206,6 @@ sequenceDiagram
     ML-->>FB: ranked pool
     FB-->>API: pool
     API-->>UI: pool
-    Note over FB: F3 feedback is global per uploadId
     Note over FB: F5 cursor is in-process
 ```
 
@@ -216,7 +213,7 @@ sequenceDiagram
 
 - One tap = one event with `concept: null`; the client resets its counter whenever it asks for a page, even if zero items arrive.
 - Page fetch is fail-soft: failures rank the existing pool; the in-process cursor walks pages 2–8.
-- The server replays the **entire feedback history for the upload**, not the latest event or the current query (**F3**).
+- The server replays the **entire feedback history for the upload**, not just the latest event; per-phrase and per-trait dedupe happens when the history is folded.
 - The page cursor does not survive a restart (**F5**).
 
 ## Flow 04: Trait tuning (Tune sheet) + style strip
@@ -250,7 +247,6 @@ sequenceDiagram
     API->>ML: rerank: aesthetic lane
     ML-->>API: ranked pool
     API-->>UI: pool
-    Note over API: F3 events share upload-global history
     Note over ML: aesthetic: last write wins per phrase; absolute (no clicked item)
     Note over UI: Tune sheet: queue physical picks; Done → POST /rerank_batch
     UI->>API: POST /rerank_batch (trait events)
@@ -326,7 +322,7 @@ No auth, sessions, tokens, or ownership checks exist. Upload IDs are sequential 
 | DINOv2 (`facebook/dinov2-base`) | `service/rank.py` | Lazy-loaded singleton; best-effort warmed in `lifespan` when `RS_WARM_MODELS=1`. |
 | FashionCLIP (`patrickjohncyh/fashion-clip`) | `service/identifier.py`, `service/traits.py` | Lazy-loaded singleton; best-effort warmed in `lifespan` when `RS_WARM_MODELS=1`; builds concept/axis embeddings. |
 | SQLite (`RS_DB_PATH`, default `search_eval.db`) | `model/repository/*`, `service/eval_db.py` | Schema applied by Alembic in `lifespan`; no hand-written DDL in app code. |
-| Upload disk (`RS_UPLOADS_PATH`, default `service/static/uploads`) | `service/eval_db.py`, `service/repository.py` | Missing file → 500 on ranking/profile paths. |
+| Upload disk (`RS_UPLOADS_PATH`, default `service/static/uploads`; dev only via `RS_SAVE_UPLOAD_IMAGES`) | `service/eval_db.py`, `service/repository.py` | Prod never writes/reads files; with the flag on, a missing file breaks legacy-row fallbacks. |
 
 ### Fault map
 
@@ -336,7 +332,6 @@ Grouped by what the user experiences. Fault IDs match the red markers, layer ann
 | --- | --- | --- | --- |
 | **F1** | Search & upload | Keyword-only search sends `uploadId: 0`; `/fetch_initial` 500s | Require an analyzed upload, or support keyword-only search with a text anchor. |
 | **F2** | Search & upload | `/fetch_initial` returns before `save_query_to_db`; immediate feedback can 500 | Await the write or return a query ID the client sends back. |
-| **F3** | Feedback & ranking | Feedback is global per `upload_id`; a new search inherits old feedback | Scope feedback to `(upload_id, query_id)`. |
 | **F5** | Feedback & ranking | Page cursor is in-process and capped at page 8 | Persist the cursor or document single-process behavior. |
 | **F6** | Security | No auth/ownership checks; upload IDs are enumerable | Add session/ownership checks before any multi-user deployment. |
 | **F7** | Persistence & state | Category and colours are lost on reload | Persist them like sizes/price/conditions. |

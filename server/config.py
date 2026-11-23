@@ -14,5 +14,7 @@ CORS_ORIGINS = os.getenv("RS_CORS_ORIGINS", "*")
 # Load the ML models during lifespan instead of on the first request. Off by default
 # so local dev and tests stay fast; the Docker image opts in.
 WARM_MODELS = os.getenv("RS_WARM_MODELS", "0").lower() in ("1", "true", "yes")
-# Reserved for the gated image-persistence work (category B); no effect yet.
+# Persist the original upload bytes to disk (local/dev debugging only). Off by default:
+# prod stores embeddings in the DB and never writes the image file. Opt in locally with
+# RS_SAVE_UPLOAD_IMAGES=1.
 SAVE_UPLOAD_IMAGES = os.getenv("RS_SAVE_UPLOAD_IMAGES", "0").lower() in ("1", "true", "yes")
