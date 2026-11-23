@@ -97,4 +97,17 @@ describe('useImageAnalysis', () => {
 
     expect((caught as Error).message).toBe('Analysis crashed: invalid image');
   });
+
+  it('rejects non-image files before calling the API', async () => {
+    await expect(
+      api.actions.handleImageUpload(new File(['x'], 'notes.txt', { type: 'text/plain' })),
+    ).rejects.toThrow('Please choose an image file.');
+    expect(analyzeFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects images larger than 10 MB', async () => {
+    const big = new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'big.jpg', { type: 'image/jpeg' });
+    await expect(api.actions.handleImageUpload(big)).rejects.toThrow('Image is too large (max 10 MB).');
+    expect(analyzeFile).not.toHaveBeenCalled();
+  });
 });

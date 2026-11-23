@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { analyzeFile } from '../api';
 
+// A high-resolution phone photo is typically 3-8 MB; 10 MB leaves headroom for RAW-ish
+// JPEGs without letting an arbitrary blob reach the CLIP/DINO pipeline.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 export function useImageAnalysis() {
   const [confirmedKeyword, setConfirmedKeyword] = useState<string>('');
   const [suggestedKeywords, setSuggestedKeywords] = useState<any[]>([]);
@@ -12,6 +16,15 @@ export function useImageAnalysis() {
 
   const handleImageUpload = async (file: File | null) => {
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Please choose an image file.');
+    }
+    if (file.size === 0) {
+      throw new Error('The selected image is empty.');
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw new Error('Image is too large (max 10 MB).');
+    }
 
     // A new upload starts a new session; stale suggestions must not linger, and the
     // panel-open effect needs a fresh false -> true edge to reopen a closed panel.
