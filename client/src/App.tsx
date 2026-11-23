@@ -89,6 +89,7 @@ function App() {
         confirmedKeyword={imageState.confirmedKeyword}
         setConfirmedKeyword={imageActions.setConfirmedKeyword}
         onImageUpload={handleImageUpload}
+        analyzing={imageState.loading}
       />
 
       {imageState.showSuggestions && (

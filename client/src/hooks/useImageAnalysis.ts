@@ -5,7 +5,6 @@ export function useImageAnalysis() {
   const [confirmedKeyword, setConfirmedKeyword] = useState<string>('');
   const [suggestedKeywords, setSuggestedKeywords] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
-  const [suggestedTags, setSuggestedTags] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [suggestedColours, setSuggestedColours] = useState<any[]>([]);
   const [suggestedCategory, setSuggestedCategory] = useState<any>(null);
@@ -27,9 +26,6 @@ export function useImageAnalysis() {
       setShowSuggestions(true);
       setSuggestedColours([analysis.colour_archetype, ...(analysis.colour_classified_tags || [])]);
       setSuggestedCategory(analysis.category_archetype);
-
-      // Store tags for weight sliders
-      setSuggestedTags(analysis.classified_tags || []);
     } catch {
       throw new Error('Connection failure to local Python host engine');
     } finally {
@@ -46,7 +42,6 @@ export function useImageAnalysis() {
       confirmedKeyword,
       suggestedKeywords,
       showSuggestions,
-      suggestedTags,
       suggestedColours,
       suggestedCategory,
       loading,

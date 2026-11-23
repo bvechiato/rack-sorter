@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-23** against the working tree based on commit `e35b604` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook.
+Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs.
 
 ## System map
 
@@ -109,7 +109,7 @@ flowchart LR
 | [02: Initial search](#flow-02-filtered-initial-search) | `PreferencesPanel.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `scraper.py`, `rank.py`, `eval_db.py` | F1, F2 | **None** |
 | [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` | F5 | **None** |
 | [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `App.tsx`, `useProductSearch.ts`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `trait_scoring.py`, `aesthetic_scoring.py` | F9 | **None** |
-| [05: Preferences & session](#flow-05-preferences-and-session-state) | `useFilters.ts`, `useUIState.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` | F7 | **None** |
+| [05: Preferences & session](#flow-05-preferences-and-session-state) | `useFilters.ts`, `useUIState.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` | — | **None** |
 
 Path shorthand: client files are under `client/src/`, server route/service files under `server/`, and test paths under `server/tests/`.
 
@@ -138,6 +138,7 @@ flowchart TD
 **Gotchas & rules**
 
 - `upload_id` exists only after a successful `/analyze`; the filter panel auto-opens when suggestions arrive.
+- While FashionCLIP runs, `SearchActionBar` shows an "Analyzing image…" status driven by `imageState.loading`; the file input stays enabled, so overlapping uploads can still race.
 - Keyword-only search is not supported: the client sends `0`, and `/fetch_initial` cannot load an anchor (**F1**).
 - Only the anchor's DINO and FashionCLIP vectors are stored by default; the original image is written to disk **only** with `RS_SAVE_UPLOAD_IMAGES=1` (dev), is never publicly served, and the preview uses a local `FileReader` URL. Ranking and trait steering read the stored vectors, so no file is needed in prod.
 - There are no auth or ownership checks anywhere (**F6**).
@@ -270,8 +271,6 @@ What filter state survives analysis, searches, and reloads.
 
 ```mermaid
 flowchart TD
-    classDef fault fill:#3b0d0d,stroke:#ff5a5a,color:#ffb3b3;
-
     M[App mount] --> L[(localStorage)]
     L --> R[Restore sizes / price / conditions]
     R --> P[Filters panel]
@@ -283,14 +282,11 @@ flowchart TD
     E --> Q[Apply filters → search]
     Q --> N[New search keeps filters]
     N --> P
-    P -. not persisted .-> F7[⚠ F7 category + colours lost]
-
-    class F7 fault
 ```
 
 **Gotchas & rules**
 
-- Sizes, price, and conditions persist in `localStorage`; category and colours do not (**F7**).
+- Sizes, price, and conditions persist in `localStorage`; category and colours are intentionally session-only — each analysis re-seeds them.
 - Analysis can overwrite a category/colour chosen before the upload.
 - A new search keeps filters but clears results, trait picks, the fetch counter, and the profile.
 - `ActiveFiltersSummary` receives App's live filter state as a prop, so it tracks in-session edits.
@@ -334,7 +330,6 @@ Grouped by what the user experiences. Fault IDs match the red markers, layer ann
 | **F2** | Search & upload | `/fetch_initial` returns before `save_query_to_db`; immediate feedback can 500 | Await the write or return a query ID the client sends back. |
 | **F5** | Feedback & ranking | Page cursor is in-process and capped at page 8 | Persist the cursor or document single-process behavior. |
 | **F6** | Security | No auth/ownership checks; upload IDs are enumerable | Add session/ownership checks before any multi-user deployment. |
-| **F7** | Persistence & state | Category and colours are lost on reload | Persist them like sizes/price/conditions. |
 | **F9** | Feedback & ranking | `/trait-profile` 500s when CLIP vectors are missing; legacy backfill is synchronous | Backfill at ingest or async; keep the axes-unavailable fallback. |
 
 ## Verification & harness
@@ -345,10 +340,10 @@ Run the repository checks:
 
 ```bash
 cd server && .venv/bin/python -m ruff check . && .venv/bin/python -m pytest tests -q
-cd client && npm run lint && npm run typecheck && npm run build
+cd client && npm test && npm run lint && npm run typecheck && npm run build
 ```
 
-There is **no browser E2E suite**. The closest automated coverage is HTTP validation and service-level unit tests:
+There is **no browser E2E suite**. The closest automated coverage is HTTP validation, service-level unit tests, and a small Vitest/jsdom test for the client's session-state contract:
 
 | Flow | Closest automated coverage |
 | --- | --- |
@@ -356,7 +351,7 @@ There is **no browser E2E suite**. The closest automated coverage is HTTP valida
 | 02 | `test_smoke.py::test_fetch_initial_validates_required_fields`, `test_rank.py`, `test_scraper.py`, repository tests |
 | 03 | `test_smoke.py::test_rerank_batch_validates_required_fields`, `test_pool.py`, `test_rerank.py`, `test_feedback.py` |
 | 04 | `test_smoke.py::test_trait_profile_requires_upload_id`, `test_profile.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
-| 05 | None (client has no test runner) |
+| 05 | `client/src/hooks/useFilters.test.tsx` (Vitest/jsdom): only sizes/price/conditions persist; category and colours reset on reload |
 
 <details>
 <summary>Manual UI smoke checklist</summary>

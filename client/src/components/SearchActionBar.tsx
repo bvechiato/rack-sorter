@@ -4,9 +4,10 @@ type Props = {
   confirmedKeyword: string;
   setConfirmedKeyword: (v: string) => void;
   onImageUpload: (file: File | null) => void;
+  analyzing: boolean;
 };
 
-const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeyword, onImageUpload }) => {
+const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeyword, onImageUpload, analyzing }) => {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,6 +51,12 @@ const SearchActionBar: React.FC<Props> = ({ confirmedKeyword, setConfirmedKeywor
           />
         </div>
       </div>
+      {analyzing && (
+        <p className="analysis-progress" role="status" aria-live="polite">
+          <span className="loading-spinner" aria-hidden="true" />
+          Analyzing image… this can take a few seconds.
+        </p>
+      )}
     </div>
   );
 }

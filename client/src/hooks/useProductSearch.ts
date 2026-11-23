@@ -13,7 +13,6 @@ type Item = components['schemas']['ItemResponse'];
 const GLOBAL_FEEDBACK_ITEM_URL = 'global';
 
 export function useProductSearch() {
-  const [currentPool, setCurrentPool] = useState<Item[]>([]);
   const [products, setProducts] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [traitPicks, setTraitPicks] = useState<Record<string, TraitPicks>>({});
@@ -52,7 +51,6 @@ export function useProductSearch() {
       const poolData = await fetchInitial(requestData);
       console.log(`[INFO] Sending scrape request with filters: ${JSON.stringify(requestData)}`);
 
-      setCurrentPool(poolData.pool || []);
       setProducts(poolData.pool || []);
       setTraitPicks({});
       // Feedback history is stored per upload, so a re-scrape of the same upload keeps
@@ -89,7 +87,6 @@ export function useProductSearch() {
       });
 
       setProducts(rankedData.pool || []);
-      setCurrentPool(rankedData.pool || []);
 
       if (concept) {
         setTraitPicks(prev => ({
@@ -134,7 +131,6 @@ export function useProductSearch() {
       });
 
       setProducts(rankedData.pool || []);
-      setCurrentPool(rankedData.pool || []);
       setTraitPicks(prev => ({ ...prev, [itemUrl]: picks }));
 
       setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
@@ -183,7 +179,6 @@ export function useProductSearch() {
       });
 
       setProducts(rankedData.pool || []);
-      setCurrentPool(rankedData.pool || []);
       setAesthetics(prev => (
         active
           ? prev.filter(value => value.toLowerCase() !== normalized.toLowerCase())
@@ -201,7 +196,6 @@ export function useProductSearch() {
 
   return {
     state: {
-      currentPool,
       products,
       loading,
       traitPicks,

@@ -74,6 +74,20 @@
 }
 .upload-zone-btn input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 
+.analysis-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--accent, #00e5ff);
+}
+.analysis-progress .loading-spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
 .keyword-wrapper {
     display: flex;
     gap: 6px;
