@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs and the file input is disabled during analysis; analysis tags are deduplicated server- and client-side; suggestions reset per upload and chip highlight follows the confirmed keyword.
+Last verified: **2026-11-23** against the working tree at commit `f1e89b5` — anchor DINO and FashionCLIP vectors are stored at upload and the image file is dev-only (`RS_SAVE_UPLOAD_IMAGES`); Alembic owns the SQLite schema; DB and upload paths come from `RS_DB_PATH` / `RS_UPLOADS_PATH`; models are warmed best-effort at startup; `new_items` dropped from the `/fetch_initial` and `/rerank_batch` responses and the client hook; category and colours are session-only by design (no fault), guarded by a Vitest/jsdom test; unused hook state (`suggestedTags`, `currentPool`, `profileLoading`) removed; analysis progress is shown in the upload bar while CLIP runs and the file input is disabled during analysis; analysis tags are deduplicated server- and client-side; suggestions reset per upload and chip highlight follows the confirmed keyword; analysis/scrape errors keep their real detail and searches require an upload and a valid price.
 
 ## System map
 
@@ -130,9 +130,7 @@ flowchart TD
     P --> N[Next: initial search]
     A -. error .-> E[Toast]
     U -. no image .-> KW[Keyword-only]
-    KW --> F1[⚠ F1 uploadId=0 → 500]
-
-    class F1 fault
+    KW --> BLOCK[Client rejects before search]
 ```
 
 **Gotchas & rules**
@@ -141,7 +139,8 @@ flowchart TD
 - While FashionCLIP runs, `SearchActionBar` shows an "Analyzing image…" status driven by `imageState.loading` and disables the file input, so uploads are single-flight and each image gets its own session.
 - Tags are deduplicated on both sides: `CANDIDATE_TAGS` has no repeats, `zero_shot_classification` collapses duplicate candidates before scoring, and the hook drops repeats before rendering chips. The archetype is also the first classified tag, so it appears once.
 - A new upload clears `showSuggestions` before analysis, so stale chips disappear and a closed filter panel can reopen on the next result. Chip highlighting is derived from `confirmedKeyword`, not local component state — typing a custom keyword updates it.
-- Keyword-only search is not supported: the client sends `0`, and `/fetch_initial` cannot load an anchor (**F1**).
+- Keyword-only search is rejected in the client before any request: `scrapeProducts` requires an analyzed upload. `/fetch_initial` still 500s if called directly with `uploadId: 0` (**F1**).
+- Analysis and scrape failures surface the server's error detail from `api.ts` instead of a generic "connection failure" / "failed fetching" message.
 - Only the anchor's DINO and FashionCLIP vectors are stored by default; the original image is written to disk **only** with `RS_SAVE_UPLOAD_IMAGES=1` (dev), is never publicly served, and the preview uses a local `FileReader` URL. Ranking and trait steering read the stored vectors, so no file is needed in prod.
 - There are no auth or ownership checks anywhere (**F6**).
 
@@ -166,15 +165,15 @@ flowchart TD
     V -. non-200 .-> ERR[Upstream or batch failure]
     D -. DINO batch .-> ERR
     D -. CLIP .-> ERR
-    Q -. missing upload .-> F1[⚠ F1 uploadId=0 → 500]
     S -. async write .-> F2[⚠ F2 feedback race]
 
-    class F1,F2 fault
+    class F2 fault
 ```
 
 **Gotchas & rules**
 
 - Filters become Vinted query params; `See all` adds no category constraint.
+- The client rejects a missing upload or a negative price cap before calling `/fetch_initial`; the server-side **F1** remains for direct calls.
 - DINOv2 cosine similarity ranks the pool; FashionCLIP vectors are computed at ingest for later trait steering.
 - The DB write is a background task, so feedback sent immediately after the grid appears can race it (**F2**).
 - Vinted non-200 → 502. Failed image downloads skip that item; DINO runs in batches of 16 and one bad image drops the whole batch, while an uncaught CLIP batch error fails the request (500).
@@ -328,7 +327,7 @@ Grouped by what the user experiences. Fault IDs match the red markers, layer ann
 
 | ID | Area | What breaks | Fix direction |
 | --- | --- | --- | --- |
-| **F1** | Search & upload | Keyword-only search sends `uploadId: 0`; `/fetch_initial` 500s | Require an analyzed upload, or support keyword-only search with a text anchor. |
+| **F1** | Search & upload | Direct `/fetch_initial` calls with `uploadId: 0` still 500; keyword-only search is now blocked client-side | Support keyword-only search with a text anchor. |
 | **F2** | Search & upload | `/fetch_initial` returns before `save_query_to_db`; immediate feedback can 500 | Await the write or return a query ID the client sends back. |
 | **F5** | Feedback & ranking | Page cursor is in-process and capped at page 8 | Persist the cursor or document single-process behavior. |
 | **F6** | Security | No auth/ownership checks; upload IDs are enumerable | Add session/ownership checks before any multi-user deployment. |
@@ -349,8 +348,8 @@ There is **no browser E2E suite**. The closest automated coverage is HTTP valida
 
 | Flow | Closest automated coverage |
 | --- | --- |
-| 01 | `tests/api_tests/test_smoke.py::test_analyze_requires_a_file`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/components/KeywordSuggestions.test.tsx`, `client/src/hooks/useImageAnalysis.test.tsx` (Vitest/jsdom): input gating, highlight sync and suggestion dedupe |
-| 02 | `test_smoke.py::test_fetch_initial_validates_required_fields`, `test_rank.py`, `test_scraper.py`, repository tests |
+| 01 | `tests/api_tests/test_smoke.py::test_analyze_requires_a_file`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/components/KeywordSuggestions.test.tsx`, `client/src/hooks/useImageAnalysis.test.tsx` (Vitest/jsdom): input gating, highlight sync, dedupe and error passthrough |
+| 02 | `test_smoke.py::test_fetch_initial_validates_required_fields`, `test_rank.py`, `test_scraper.py`, repository tests; `client/src/hooks/useProductSearch.test.tsx` (Vitest/jsdom): pre-flight validation and error passthrough |
 | 03 | `test_smoke.py::test_rerank_batch_validates_required_fields`, `test_pool.py`, `test_rerank.py`, `test_feedback.py` |
 | 04 | `test_smoke.py::test_trait_profile_requires_upload_id`, `test_profile.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
 | 05 | `client/src/hooks/useFilters.test.tsx` (Vitest/jsdom): only sizes/price/conditions persist; category and colours reset on reload |

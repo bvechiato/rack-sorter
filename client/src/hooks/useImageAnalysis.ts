@@ -31,8 +31,8 @@ export function useImageAnalysis() {
         ...new Set([analysis.colour_archetype, ...(analysis.colour_classified_tags || [])]),
       ]);
       setSuggestedCategory(analysis.category_archetype);
-    } catch {
-      throw new Error('Connection failure to local Python host engine');
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Image analysis failed');
     } finally {
       setLoading(false);
     }

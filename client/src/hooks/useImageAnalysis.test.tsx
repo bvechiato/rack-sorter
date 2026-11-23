@@ -82,4 +82,19 @@ describe('useImageAnalysis', () => {
       });
     });
   });
+
+  it('surfaces the real analysis error instead of a generic connection failure', async () => {
+    vi.mocked(analyzeFile).mockRejectedValueOnce(new Error('Analysis crashed: invalid image'));
+    let caught: unknown;
+
+    await act(async () => {
+      try {
+        await api.actions.handleImageUpload(new File(['bad'], 'bad.jpg', { type: 'image/jpeg' }));
+      } catch (err) {
+        caught = err;
+      }
+    });
+
+    expect((caught as Error).message).toBe('Analysis crashed: invalid image');
+  });
 });
