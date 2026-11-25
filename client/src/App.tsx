@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Header from './components/Header';
 import ErrorBoundary from './components/ErrorBoundary';
 import SearchActionBar from './components/SearchActionBar';
@@ -23,6 +23,7 @@ function App() {
   const { state: imageState, actions: imageActions } = useImageAnalysis();
   const { state: searchState, actions: searchActions } = useProductSearch();
   const { state: uiState, actions: uiActions } = useUIState();
+  const [undoConfirmOpen, setUndoConfirmOpen] = useState(false);
 
   const tunedItem = uiState.traitSheetUrl
     ? searchState.products.find(product => product.url === uiState.traitSheetUrl) ?? null
@@ -57,6 +58,16 @@ function App() {
     }
   };
 
+  const handleConfirmUndo = async () => {
+    setUndoConfirmOpen(false);
+    try {
+      await searchActions.confirmUndo(imageState.uploadId);
+    } catch (err: any) {
+      uiActions.showError(err.message);
+      setUndoConfirmOpen(true);
+    }
+  };
+
   useEffect(() => {
     filterActions.seedColours(imageState.suggestedColours);
   }, [imageState.suggestedColours]);
@@ -77,6 +88,13 @@ function App() {
       searchActions.loadTraitProfile(imageState.uploadId, uiState.traitSheetUrl);
     }
   }, [uiState.traitSheetUrl, imageState.uploadId]);
+
+  // Keep the undo preview in step with the server's feedback history for this upload.
+  useEffect(() => {
+    if (imageState.uploadId) {
+      searchActions.fetchLastFeedback(imageState.uploadId);
+    }
+  }, [imageState.uploadId]);
 
   return (
     <ErrorBoundary>
@@ -155,6 +173,31 @@ function App() {
         <div className={`fixed-status-bar is-refreshing`} role="status" aria-live="polite">
           <span className="loading-spinner loading-spinner--sm" aria-hidden="true" />
           <span>Fetching more and reranking…</span>
+        </div>
+      )}
+
+      {searchState.undoPreview && !undoConfirmOpen && (
+        <div className="fixed-status-bar undo-bar" role="status" aria-live="polite">
+          <span>↩ Undo last feedback: {searchState.undoPreview}</span>
+          <button className="undo-bar-action" onClick={() => setUndoConfirmOpen(true)}>
+            Undo
+          </button>
+        </div>
+      )}
+
+      {undoConfirmOpen && (
+        <div className="fixed-status-bar undo-bar is-confirming" role="alert" aria-live="assertive">
+          <span>Confirm undo: {searchState.undoPreview}?</span>
+          <button className="undo-bar-action" onClick={() => setUndoConfirmOpen(false)}>
+            Cancel
+          </button>
+          <button
+            className="undo-bar-action undo-bar-action--confirm"
+            onClick={handleConfirmUndo}
+            disabled={searchState.confirmingUndo}
+          >
+            {searchState.confirmingUndo ? 'Undoing…' : 'Confirm'}
+          </button>
         </div>
       )}
 

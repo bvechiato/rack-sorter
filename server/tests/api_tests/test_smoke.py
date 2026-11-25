@@ -40,3 +40,13 @@ def test_rerank_batch_validates_required_fields():
 def test_trait_profile_requires_upload_id():
     response = client.get("/trait-profile")
     assert response.status_code == 422
+
+
+def test_undo_feedback_validates_required_fields():
+    response = client.post("/undo_feedback", json={})
+    assert response.status_code == 422
+
+
+def test_feedback_last_requires_upload_id():
+    response = client.get("/feedback/last")
+    assert response.status_code == 422

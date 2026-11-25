@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { fetchInitial, rerankBatch } from '../api';
+import { fetchInitial, fetchLastFeedback as apiFetchLastFeedback, rerankBatch, undoFeedback } from '../api';
 import type { components } from '../types/api';
 import type { Trait } from '../static/constants';
 import { useTraitProfile } from './useTraitProfile';
@@ -26,6 +26,10 @@ export function useProductSearch() {
   // Feedbacks accumulated since the last catalogue-page fetch. A new page is
   // pulled only every FETCH_EVERY feedbacks, so most taps stay cheap.
   const [feedbacksSinceFetch, setFeedbacksSinceFetch] = useState(0);
+  // The most recent feedback event for the current upload, used to preview an undo.
+  // Fetched from the server so it stays in step with the append-only history.
+  const [lastFeedback, setLastFeedback] = useState<{ item_url: string; feedback_type: string; concept?: string | null; aesthetic?: string | null } | null>(null);
+  const [confirmingUndo, setConfirmingUndo] = useState(false);
   const [fetchingMore, setFetchingMore] = useState(false);
   const FETCH_EVERY = 3;
 
@@ -71,6 +75,7 @@ export function useProductSearch() {
         setAesthetics([]);
       }
       setFeedbacksSinceFetch(0);
+      setLastFeedback(null);
       clearTraitProfile();
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed fetching items with the chosen keyword.');
@@ -109,6 +114,9 @@ export function useProductSearch() {
 
       setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
 
+      // Refresh the last-feedback preview so the undo button stays in step.
+      await fetchLastFeedback(uploadId);
+
       // Profile is only needed for the Tune sheet's debug radar; it refreshes on
       // open and after Done, so skip the extra /trait-profile call here.
     } catch (err) {
@@ -146,6 +154,9 @@ export function useProductSearch() {
       setTraitPicks(prev => ({ ...prev, [itemUrl]: picks }));
 
       setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
+
+      // Refresh the last-feedback preview so the undo button stays in step.
+      await fetchLastFeedback(uploadId);
 
       await loadTraitProfile(uploadId, itemUrl);
     } catch (err) {
@@ -198,6 +209,9 @@ export function useProductSearch() {
       ));
 
       setFeedbacksSinceFetch(willFetch ? 0 : feedbacksSinceFetch + eventsCount);
+
+      // Refresh the last-feedback preview so the undo button stays in step.
+      await fetchLastFeedback(uploadId);
     } catch (err) {
       throw err instanceof Error ? err : new Error('Vector calculation error');
     } finally {
@@ -205,6 +219,45 @@ export function useProductSearch() {
       setLoading(false);
     }
   };
+
+  const fetchLastFeedback = async (uploadId: any) => {
+    try {
+      const fb = await apiFetchLastFeedback(uploadId);
+      setLastFeedback(fb ?? null);
+    } catch {
+      // No feedback to undo: hide the undo button.
+      setLastFeedback(null);
+    }
+  };
+
+  const confirmUndo = async (uploadId: any) => {
+    setConfirmingUndo(true);
+    try {
+      const rankedData = await undoFeedback({ upload_id: uploadId, fetch_more: false });
+      setProducts(rankedData.pool || []);
+      // Undo still never fetches a page, but it gives back the cadence slot the removed
+      // event consumed: "rate another 2" → add feedback → "1" → undo → back to "2".
+      // Clamp at zero — an event undone just after a page fetch already had its slot reset.
+      setFeedbacksSinceFetch(prev => Math.max(0, prev - 1));
+      await fetchLastFeedback(uploadId);
+    } catch (err: any) {
+      throw new Error(err?.message || 'Undo failed');
+    } finally {
+      setConfirmingUndo(false);
+    }
+  };
+
+  // The undo bar covers physical trait picks and visual MORE/LESS card taps. Aesthetic
+  // phrases are excluded: they are undone by untoggling their StyleStrip chip.
+  const undoPreview = (() => {
+    if (!lastFeedback || lastFeedback.aesthetic) return null;
+    if (lastFeedback.concept) return `${lastFeedback.feedback_type} ${lastFeedback.concept}`;
+    const item = products.find(p => p.url === lastFeedback.item_url);
+    // Card titles pack brand/condition/size/price after the first comma; the undo preview
+    // only needs the product name, quoted for clarity.
+    const name = item ? item.title.split(',')[0].trim() : 'a card';
+    return `${lastFeedback.feedback_type} like \`${name}\``;
+  })();
 
   return {
     state: {
@@ -215,6 +268,9 @@ export function useProductSearch() {
       aesthetics,
       feedbacksSinceFetch,
       fetchingMore,
+      lastFeedback,
+      undoPreview,
+      confirmingUndo,
       traitProfile: traitProfile.state.traitProfile,
       profileError: traitProfile.state.profileError,
     },
@@ -224,6 +280,8 @@ export function useProductSearch() {
       applyTraitPicks,
       toggleAesthetic,
       loadTraitProfile,
+      fetchLastFeedback,
+      confirmUndo,
     },
   };
 }

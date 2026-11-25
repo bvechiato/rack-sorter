@@ -54,3 +54,22 @@ export async function fetchTraitProfile(uploadId: number, itemUrl?: string): Pro
   const res = await fetch(`${API_HOST}/trait-profile?${params.toString()}`);
   return await handleResponse<TraitProfileResponse>(res);
 }
+
+export async function fetchLastFeedback(uploadId: number) {
+  const res = await fetch(`${API_HOST}/feedback/last?upload_id=${uploadId}`);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.detail || error.message || `API error: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function undoFeedback(data: { upload_id: number; fetch_more?: boolean }) {
+  const res = await fetch(`${API_HOST}/undo_feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return await handleResponse<FetchInitialResponse>(res);
+}
