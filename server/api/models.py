@@ -71,6 +71,13 @@ class BatchRerankRequest(BaseModel):
     fetch_more: bool = True
 
 
+class UndoFeedbackRequest(BaseModel):
+    upload_id: int
+    # Undo never pulls an extra catalogue page; it only removes the last steering event
+    # and re-ranks the existing pool, keeping add-then-undo cadence-neutral.
+    fetch_more: bool = False
+
+
 class TraitProfileResponse(BaseModel):
     """Raw axis projections plus the pool spread the scorer standardises against."""
 

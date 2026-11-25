@@ -31,7 +31,9 @@ flowchart LR
         AN{{"POST /analyze"}}
         FI{{"POST /fetch_initial"}}
         RR{{"POST /rerank_batch"}}
+        UF{{"POST /undo_feedback"}}
         TP{{"GET /trait-profile"}}
+        LF{{"GET /feedback/last"}}
     end
 
     subgraph Services["ML + search services · green"]
@@ -60,7 +62,9 @@ flowchart LR
     API --> AN
     API --> FI
     API --> RR
+    API --> UF
     API --> TP
+    API --> LF
 
     AN --> CL
     AN --> EV
@@ -88,17 +92,17 @@ flowchart LR
     AL --> RR
 
     class UI,API client
-    class AN,FI,RR,TP route
+    class AN,FI,RR,UF,TP,LF route
     class EV,SC,DN,CL,FD,PR service
     class VI external
     class DB,FS storage
     class F1,F2 fault
 
-    linkStyle 0,1,2,3,4 stroke:#4aa3ff,stroke-width:2px
-    linkStyle 5,6,7,8,9,10,24 stroke:#a78bfa,stroke-width:2px
-    linkStyle 11,12,13,14,15,16,17,18,19,20,25 stroke:#34d399,stroke-width:2px
-    linkStyle 21 stroke:#fb923c,stroke-width:2px
-    linkStyle 22,23 stroke:#ff5a5a,stroke-width:2px,stroke-dasharray: 5 3
+    linkStyle 0,1,2,3,4,5,6 stroke:#4aa3ff,stroke-width:2px
+    linkStyle 7,8,9,10,11,12,27 stroke:#a78bfa,stroke-width:2px
+    linkStyle 13,14,15,16,17,18,19,20,21,22,26 stroke:#34d399,stroke-width:2px
+    linkStyle 23 stroke:#fb923c,stroke-width:2px
+    linkStyle 24,25 stroke:#ff5a5a,stroke-width:2px,stroke-dasharray: 5 3
 ```
 
 ## Flow index
@@ -107,7 +111,7 @@ flowchart LR
 | --- | --- |
 | [01: Image analysis](#flow-01-image-analysis-and-search-seeding) | `SearchActionBar.tsx`, `App.tsx`, `useImageAnalysis.ts`, `api.ts` → `routes/analyze.py`, `identifier.py`, `eval_db.py` |
 | [02: Initial search](#flow-02-filtered-initial-search) | `PreferencesPanel.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `scraper.py`, `rank.py`, `eval_db.py` |
-| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` |
+| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `App.tsx` (undo bar), `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` |
 | [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `rerank.py`, `trait_scoring.py`, `aesthetic_scoring.py` |
 | [05: Trait profile](#flow-05-trait-profile) | `TraitSheet.tsx`, `App.tsx`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `rerank.py` |
 | [06: Preferences & session](#flow-06-preferences-and-session-state) | `useFilters.ts`, `useUIState.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` |
@@ -181,7 +185,7 @@ flowchart TD
 
 ## Flow 03: More / Less feedback
 
-One card tap reranks immediately; every third tap also pulls one more catalogue page.
+One card tap reranks immediately; every third tap also pulls one more catalogue page. A fixed undo bar can revert the last physical pick or visual MORE/LESS tap without fetching a page.
 
 ```mermaid
 sequenceDiagram
@@ -193,16 +197,22 @@ sequenceDiagram
     participant ML as Rerank + CLIP
     participant DB as SQLite
 
-    UI->>API: POST /rerank_batch
-    Note over UI: fetch_more when counter + 1 reaches 3
-    API->>FB: apply_feedback_and_rerank
-    FB->>DB: insert rerank_feedback
-    alt fetch_more allowed
-        FB->>V: scrape next page
-        V-->>FB: listings
-        FB->>ML: rank + insert unseen
-    else no fetch or page cap
-        Note over FB: rank existing pool
+    UI->>API: POST /rerank_batch or /undo_feedback
+    alt undo (physical picks, explicit Confirm)
+        API->>FB: undo_feedback_and_rerank
+        FB->>DB: delete max-id feedback row
+        Note over FB: no page fetch (cadence-neutral)
+    else new feedback
+        Note over UI: fetch_more when counter + 1 reaches 3
+        API->>FB: apply_feedback_and_rerank
+        FB->>DB: insert rerank_feedback
+        alt fetch_more allowed
+            FB->>V: scrape next page
+            V-->>FB: listings
+            FB->>ML: rank + insert unseen
+        else no fetch or page cap
+            Note over FB: rank existing pool
+        end
     end
     FB->>DB: read latest query + full feedback history
     FB->>ML: rerank
@@ -217,6 +227,7 @@ sequenceDiagram
 - One tap = one event with `concept: null`; the client resets its counter whenever it asks for a page, even if zero items arrive.
 - Page fetch is fail-soft: failures rank the existing pool; the in-process cursor walks pages 2–8.
 - Feedback is keyed by `upload_id` and replayed in full on every rerank; per-phrase and per-trait dedupe happens when the history is folded.
+- Undo: a fixed "Undo last feedback" button reverts the most recent physical trait pick or visual MORE/LESS card tap and re-ranks the existing pool with no page fetch. Undo gives back the cadence slot the removed event consumed (clamped at zero): "rate another 2" → add → "1" → undo → back to "2", so add-then-undo never triggers an unwanted scrape. Aesthetic phrases are excluded because they are removed by untoggling their chip in the StyleStrip. Undo requires an explicit confirm and never auto-reranks (reranking could drop an item from the grid).
 - The reference image (`upload_id`) defines the session. Re-searching with a different keyword or filters keeps prior steering: More/Less and style phrases carry into the new pool, while a trait pick only applies if its item reappears. A new upload begins a new session.
 - The page cursor does not survive a restart (F5).
 
@@ -323,6 +334,8 @@ flowchart TD
 | `POST` | `/fetch_initial` | `api/routes/search.py` | `fetchInitial` | Scrapes, ranks, returns pool; DB write is async. |
 | `POST` | `/rerank` | `api/routes/search.py` | none | Legacy single-event endpoint. |
 | `POST` | `/rerank_batch` | `api/routes/search.py` | `rerankBatch` | Client feedback path. |
+| `POST` | `/undo_feedback` | `api/routes/search.py` | client undo button | Remove last feedback event + re-rank; no page fetch (cadence-neutral). |
+| `GET` | `/feedback/last` | `api/routes/search.py` | client undo preview | Return most recent feedback event, or 404 if none. |
 | `GET` | `/trait-profile` | `api/routes/search.py` | `fetchTraitProfile` | Debug projections; needs anchor + candidate CLIP vectors. |
 | `GET` | `/` | `server/main.py` | browser | Returns `index.html` from the server working directory. |
 | `GET` | `/manifest.json` | `server/main.py` | browser | Returns `manifest.json` from the server working directory. |
@@ -370,7 +383,7 @@ There is **no browser E2E suite**. Closest automated coverage:
 | --- | --- |
 | 01 | `tests/api_tests/test_smoke.py`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/components/KeywordSuggestions.test.tsx`, `client/src/hooks/useImageAnalysis.test.tsx` |
 | 02 | `test_smoke.py`, `test_rank.py`, `test_scraper.py`, repository tests; `client/src/hooks/useProductSearch.test.tsx` |
-| 03 | `test_smoke.py`, `test_pool.py`, `test_rerank.py`, `test_feedback.py` |
+| 03 | `test_smoke.py`, `test_pool.py`, `test_rerank.py`, `test_feedback.py`, `test_feedback_flow.py` |
 | 04 | `test_smoke.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
 | 05 | `test_smoke.py`, `test_profile.py` |
 | 06 | `client/src/hooks/useFilters.test.tsx` |
@@ -388,7 +401,12 @@ There is **no browser E2E suite**. Closest automated coverage:
 8. Reopen Tune for the same item → applied picks are mirrored.
 9. Style strip → below the filters: tap a chip → pool reranks, chip becomes active (✕);
    tap again → removed; "＋ more" reveals the preset list + free-text field.
-10. Stop the backend and retry → toast/sheet error path.
+10. Undo: a fixed "Undo last feedback" bar appears after a Tune pick or a More/Less card
+    tap; it shows the last event and waits for Confirm — no rerank on tap. Confirm → pool
+    reranks, no page fetch, fetch counter goes back down by one (clamped at zero); the bar
+    updates to the next-most-recent event (or hides if none). Aesthetic style-chip phrases do
+    not show the bar (untoggle the chip instead). Add then undo → no fetch-more.
+11. Stop the backend and retry → toast/sheet error path.
 
 Record which steps actually ran. Do not claim an E2E pass from unit tests alone.
 

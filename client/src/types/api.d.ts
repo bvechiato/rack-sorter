@@ -112,6 +112,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/undo_feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo Feedback
+         * @description Remove the last feedback event for an upload and re-rank the pool.
+         *
+         *     Undo never fetches more pages, so it stays cadence-neutral: add-then-undo does not
+         *     consume a fetch-more slot.
+         */
+        post: operations["undo_feedback_undo_feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/feedback/last": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Last Feedback
+         * @description Return the most recent feedback event for an upload (for an undo preview), or 404.
+         */
+        get: operations["last_feedback_feedback_last_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -292,6 +335,16 @@ export interface components {
             item?: {
                 [key: string]: number;
             } | null;
+        };
+        /** UndoFeedbackRequest */
+        UndoFeedbackRequest: {
+            /** Upload Id */
+            upload_id: number;
+            /**
+             * Fetch More
+             * @default false
+             */
+            fetch_more: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -484,6 +537,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TraitProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_feedback_undo_feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UndoFeedbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    last_feedback_feedback_last_get: {
+        parameters: {
+            query: {
+                upload_id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
