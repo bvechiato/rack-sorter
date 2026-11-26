@@ -1,11 +1,11 @@
 import React from 'react';
-import { useFilters } from '../../hooks';
+import type { FiltersState } from '../../state/filters';
 import { SIZES, CONDITION_OPTIONS } from '../../static/constants';
 import '../../styles/preferences.css';
 
 interface SummaryProps {
   keyword: string;
-  filters: ReturnType<typeof useFilters>['filters'];
+  filters: FiltersState;
 }
 
 const ActiveFiltersSummary: React.FC<SummaryProps> = ({ keyword, filters }) => {

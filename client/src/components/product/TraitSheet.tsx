@@ -1,22 +1,52 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { components } from '../../types/api';
 import { TRAITS, Trait } from '../../static/constants';
+import type { Direction, TraitPicks } from '../../state/types';
 import TraitRadar from './TraitRadar';
 
 type ItemResponse = components['schemas']['ItemResponse'];
 type TraitProfile = components['schemas']['TraitProfileResponse'];
-type Direction = 'MORE' | 'LESS';
 
 interface TraitSheetProps {
   item: ItemResponse;
   /** Fired by Done with every queued trait; one request, one rerank. */
-  onApply: (picks: Partial<Record<Trait, Direction>>) => Promise<void>;
+  onApply: (picks: TraitPicks) => Promise<void>;
   /** Traits already applied to this item, so reopening the sheet reflects them. */
-  appliedPicks?: Partial<Record<Trait, Direction>>;
+  appliedPicks?: TraitPicks;
   /** Debug view of the scorer's current axis positions. */
   profile?: TraitProfile | null;
   profileError?: string | null;
   onClose: () => void;
+}
+
+/** Queued picks are local until Done; applying and failure are explicit stages. */
+type EditState =
+  | { kind: 'editing'; picks: TraitPicks }
+  | { kind: 'applying'; picks: TraitPicks }
+  | { kind: 'error'; picks: TraitPicks; message: string };
+
+type EditAction =
+  | { type: 'PICK'; trait: Trait; direction: Direction }
+  | { type: 'APPLY_START' }
+  | { type: 'APPLY_ERROR'; message: string };
+
+function editReducer(state: EditState, action: EditAction): EditState {
+  switch (action.type) {
+    case 'PICK':
+      if (state.kind === 'applying' || state.picks[action.trait] === action.direction) {
+        return state;
+      }
+      return {
+        kind: 'editing',
+        picks: { ...state.picks, [action.trait]: action.direction },
+      };
+    case 'APPLY_START':
+      return { kind: 'applying', picks: state.picks };
+    case 'APPLY_ERROR':
+      return { kind: 'error', picks: state.picks, message: action.message };
+    default:
+      return state;
+  }
 }
 
 const TraitSheet: React.FC<TraitSheetProps> = ({
@@ -27,13 +57,15 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
   profileError,
   onClose,
 }) => {
-  // Last choice per trait, mirrored from what is already applied. Nothing is sent
-  // until Done: the sheet collects the whole selection first.
-  const [picks, setPicks] = useState<Partial<Record<Trait, Direction>>>(appliedPicks ?? {});
-  const [applying, setApplying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [edit, dispatchEdit] = useReducer(editReducer, {
+    kind: 'editing' as const,
+    picks: appliedPicks ?? {},
+  });
   const [showAxes, setShowAxes] = useState(false);
   const sheetRef = useRef<HTMLElement>(null);
+  const picks = edit.picks;
+  const applying = edit.kind === 'applying';
+  const error = edit.kind === 'error' ? edit.message : null;
 
   useEffect(() => {
     const returnFocusTo = document.activeElement as HTMLElement | null;
@@ -52,9 +84,7 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
   }, [onClose]);
 
   const pick = (trait: Trait, direction: Direction) => {
-    if (applying || picks[trait] === direction) return;
-    setPicks(prev => ({ ...prev, [trait]: direction }));
-    setError(null);
+    dispatchEdit({ type: 'PICK', trait, direction });
   };
 
   const apply = async () => {
@@ -66,16 +96,16 @@ const TraitSheet: React.FC<TraitSheetProps> = ({
       return;
     }
 
-    setApplying(true);
-    setError(null);
+    dispatchEdit({ type: 'APPLY_START' });
     try {
       await onApply(picks);
       onClose();
     } catch (err: any) {
       // Keep the sheet open so the user can retry; the local picks are unchanged.
-      setError(err?.message || 'Could not apply those adjustments.');
-    } finally {
-      setApplying(false);
+      dispatchEdit({
+        type: 'APPLY_ERROR',
+        message: err?.message || 'Could not apply those adjustments.',
+      });
     }
   };
 

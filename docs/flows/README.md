@@ -2,7 +2,7 @@
 
 Current system behavior, one visual layer per section. If the code and a diagram disagree, treat that as drift and fix it in the same task.
 
-Last verified: **2026-11-23**, working tree at `ed84d6f`.
+Last verified: **2026-11-25**, working tree at `19bf37c`.
 
 ## System map
 
@@ -23,7 +23,7 @@ flowchart LR
     classDef fault fill:#3b0d0d,stroke:#ff5a5a,color:#ffb3b3,stroke-width:2px;
 
     subgraph Client["React client · blue"]
-        UI(["UI + hooks"])
+        UI(["UI + store"])
         API(["api.ts"])
     end
 
@@ -109,12 +109,12 @@ flowchart LR
 
 | Flow | Entry points (client → server) |
 | --- | --- |
-| [01: Image analysis](#flow-01-image-analysis-and-search-seeding) | `SearchActionBar.tsx`, `App.tsx`, `useImageAnalysis.ts`, `api.ts` → `routes/analyze.py`, `identifier.py`, `eval_db.py` |
-| [02: Initial search](#flow-02-filtered-initial-search) | `PreferencesPanel.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `scraper.py`, `rank.py`, `eval_db.py` |
-| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `App.tsx` (undo bar), `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` |
-| [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `useProductSearch.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `rerank.py`, `trait_scoring.py`, `aesthetic_scoring.py` |
-| [05: Trait profile](#flow-05-trait-profile) | `TraitSheet.tsx`, `App.tsx`, `useTraitProfile.ts`, `api.ts` → `routes/search.py`, `profile.py`, `rerank.py` |
-| [06: Preferences & session](#flow-06-preferences-and-session-state) | `useFilters.ts`, `useUIState.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` |
+| [01: Image analysis](#flow-01-image-analysis-and-search-seeding) | `SearchActionBar.tsx`, `App.tsx`, `state/commands.ts`, `api.ts` → `routes/analyze.py`, `identifier.py`, `eval_db.py` |
+| [02: Initial search](#flow-02-filtered-initial-search) | `PreferencesPanel.tsx`, `state/commands.ts`, `api.ts` → `routes/search.py`, `scraper.py`, `rank.py`, `eval_db.py` |
+| [03: More / Less feedback](#flow-03-more--less-feedback) | `ProductCard.tsx`, `App.tsx` (undo bar), `state/commands.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `pool.py`, `rerank.py` |
+| [04: Trait tuning + style strip](#flow-04-trait-tuning-tune-sheet) | `StyleStrip.tsx`, `TraitSheet.tsx`, `state/commands.ts`, `api.ts` → `routes/search.py`, `feedback_flow.py`, `rerank.py`, `trait_scoring.py`, `aesthetic_scoring.py` |
+| [05: Trait profile](#flow-05-trait-profile) | `TraitSheet.tsx`, `App.tsx`, `state/commands.ts`, `api.ts` → `routes/search.py`, `profile.py`, `rerank.py` |
+| [06: Preferences & session](#flow-06-preferences-and-session-state) | `state/store.tsx`, `state/persistence.ts`, `App.tsx`, `PreferencesPanel.tsx`, `ActiveFiltersSummary.tsx` |
 
 Path shorthand: client files are under `client/src/`, server route/service files under `server/`, test paths under `server/tests/`. There are no browser E2E specs; the closest automated coverage is listed under Verification.
 
@@ -178,7 +178,7 @@ flowchart TD
 **Gotchas & rules**
 
 - Filters become Vinted query params; `See all` adds no category constraint.
-- The scrape overlay is driven by a `searching` flag, separate from `loading` (rerank/feedback).
+- The scrape overlay and the busy flag are both selectors over one `status`: `scraping` drives the overlay, while `scraping | reranking` drives `loading` for cards and style chips. Undo is tracked separately by the undo stage and does not disable the grid.
 - DINOv2 cosine similarity ranks the pool; FashionCLIP vectors are computed at ingest for later trait steering.
 - The DB write is a background task, so immediate feedback can race it (F2).
 - Vinted non-200 → 502. Failed image downloads skip the item; DINO runs in batches of 16 and one bad image drops the whole batch, while an uncaught CLIP batch error fails the request (500).
@@ -228,6 +228,7 @@ sequenceDiagram
 - Page fetch is fail-soft: failures rank the existing pool; the in-process cursor walks pages 2–8.
 - Feedback is keyed by `upload_id` and replayed in full on every rerank; per-phrase and per-trait dedupe happens when the history is folded.
 - Undo: a fixed "Undo last feedback" button reverts the most recent physical trait pick or visual MORE/LESS card tap and re-ranks the existing pool with no page fetch. Undo gives back the cadence slot the removed event consumed (clamped at zero): "rate another 2" → add → "1" → undo → back to "2", so add-then-undo never triggers an unwanted scrape. Aesthetic phrases are excluded because they are removed by untoggling their chip in the StyleStrip. Undo requires an explicit confirm and never auto-reranks (reranking could drop an item from the grid).
+- The undo bar is an explicit `hidden → preview → confirming → undoing` stage in `state/search.ts`. Cancel returns to preview, Cancel is unavailable and Confirm is disabled while undo is in flight (a failed confirm reopens it only if it was still pending), and a successful undo promotes the next-most-recent event (or hides). An aesthetic last event never enters the flow.
 - The reference image (`upload_id`) defines the session. Re-searching with a different keyword or filters keeps prior steering: More/Less and style phrases carry into the new pool, while a trait pick only applies if its item reappears. A new upload begins a new session.
 - The page cursor does not survive a restart (F5).
 
@@ -321,6 +322,8 @@ flowchart TD
 
 - Sizes, price and conditions persist in `localStorage`. Category and colours are session-only: analysis seeds them until the user picks one.
 - A new search keeps filters and the upload's feedback history; it clears results, local trait-pick state, the fetch counter and the profile.
+- The client is store-first: `state/store.tsx` holds one `AppState` tree and one root reducer composed from pure slices (`analysis`, `filters`, `search`, `ui`). `App.tsx` reads that tree and sends intents; it owns no `useState` and no `useEffect`. Cross-slice rules (analysis seeds filters, opens the panel) live in the root reducer; async I/O lives in `state/commands.ts`. `state/store.tsx` supplies the React context and `state/actions.ts` binds UI intents to events and commands — neither owns feature state. Persistence is store infrastructure in `state/persistence.ts`.
+- Request work is one `idle | scraping | reranking` status instead of independent busy flags; undo has a single `undoStage` marker rather than a second in-flight flag. The cadence counter, undo stage and per-upload aesthetic list transition in the same reducer as the pool. The Tune sheet's queued picks have their own `editing | applying | error` reducer.
 - `ActiveFiltersSummary` receives App's live filter state as a prop, so it tracks in-session edits.
 
 ## Integration & fault map
@@ -381,12 +384,12 @@ There is **no browser E2E suite**. Closest automated coverage:
 
 | Flow | Closest automated coverage |
 | --- | --- |
-| 01 | `tests/api_tests/test_smoke.py`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/components/KeywordSuggestions.test.tsx`, `client/src/hooks/useImageAnalysis.test.tsx` |
-| 02 | `test_smoke.py`, `test_rank.py`, `test_scraper.py`, repository tests; `client/src/hooks/useProductSearch.test.tsx` |
-| 03 | `test_smoke.py`, `test_pool.py`, `test_rerank.py`, `test_feedback.py`, `test_feedback_flow.py` |
-| 04 | `test_smoke.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py` |
-| 05 | `test_smoke.py`, `test_profile.py` |
-| 06 | `client/src/hooks/useFilters.test.tsx` |
+| 01 | `tests/api_tests/test_smoke.py`, `tests/service_tests/test_identifier.py`; `client/src/components/SearchActionBar.test.tsx`, `client/src/components/KeywordSuggestions.test.tsx`, `client/src/state/commands.test.ts`, `client/src/state/analysis.test.ts` |
+| 02 | `test_smoke.py`, `test_rank.py`, `test_scraper.py`, repository tests; `client/src/state/commands.test.ts`, `client/src/state/search.test.ts` |
+| 03 | `test_smoke.py`, `test_pool.py`, `test_rerank.py`, `test_feedback.py`, `test_feedback_flow.py`; `client/src/state/search.test.ts`, `client/src/state/commands.test.ts` |
+| 04 | `test_smoke.py`, `test_traits.py`, `test_rerank.py`, `test_aesthetic_scoring.py`; `client/src/state/search.test.ts`, `client/src/state/commands.test.ts` |
+| 05 | `test_smoke.py`, `test_profile.py`; `client/src/state/commands.test.ts` |
+| 06 | `client/src/state/store.test.ts`, `client/src/state/store.integration.test.tsx`, `client/src/state/persistence.test.ts`, `client/src/state/filters.test.ts`, `client/src/state/ui.test.ts` |
 
 <details>
 <summary>Manual UI smoke checklist</summary>
