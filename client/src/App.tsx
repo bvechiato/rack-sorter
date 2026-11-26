@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import Header from './components/Header';
 import ErrorBoundary from './components/ErrorBoundary';
 import SearchActionBar from './components/SearchActionBar';
@@ -9,92 +8,68 @@ import ProductGrid from './components/product/ProductGrid';
 import TraitSheet from './components/product/TraitSheet';
 import ActiveFiltersSummary from './components/preferences/ActiveFiltersSummary';
 import LoadingIndicator from './components/LoadingIndicator';
+import { useActions } from './state/actions';
 import {
-  useFilters,
-  useImageAnalysis,
-  useProductSearch,
-  useUIState
-} from './hooks';
+  selectFetchingMore,
+  selectLoading,
+  selectSearching,
+  selectUndoing,
+  selectUndoPreview,
+} from './state/search';
+import { useStore } from './state/store';
+import { FETCH_EVERY } from './state/types';
 import './styles/index.css';
 import './styles/generic.css';
 
+/** The view reads one state tree and sends intents; it owns no state and no effects. */
 function App() {
-  const { filters, actions: filterActions } = useFilters();
-  const { state: imageState, actions: imageActions } = useImageAnalysis();
-  const { state: searchState, actions: searchActions } = useProductSearch();
-  const { state: uiState, actions: uiActions } = useUIState();
-  const [undoConfirmOpen, setUndoConfirmOpen] = useState(false);
+  const { state } = useStore();
+  const actions = useActions();
+  const { analysis, filters, search, ui } = state;
 
-  const tunedItem = uiState.traitSheetUrl
-    ? searchState.products.find(product => product.url === uiState.traitSheetUrl) ?? null
+  const loading = selectLoading(search);
+  const searching = selectSearching(search);
+  const fetchingMore = selectFetchingMore(search);
+  const undoing = selectUndoing(search);
+  const undoPreview = selectUndoPreview(search);
+
+  const tunedItem = ui.traitSheetUrl
+    ? search.products.find(product => product.url === ui.traitSheetUrl) ?? null
     : null;
 
   const handleImageUpload = async (file: File | null) => {
     if (!file) return;
     try {
-      await imageActions.handleImageUpload(file as File);
+      await actions.analyzeImage(file);
     } catch (err: any) {
-      uiActions.showError(err.message);
+      actions.showError(err.message);
     }
   };
 
   const handleScrape = async () => {
     try {
-      await searchActions.scrapeProducts(imageState.uploadId, imageState.confirmedKeyword, filters);
+      await actions.search();
     } catch (err: any) {
-      uiActions.showError(err.message);
+      actions.showError(err.message);
     }
   };
 
-  // Styles are global, so the strip toggles one phrase at a time and the whole pool reranks.
   const handleToggleAesthetic = async (phrase: string) => {
-    const isActive = searchState.aesthetics.some(
-      value => value.toLowerCase() === phrase.toLowerCase(),
-    );
     try {
-      await searchActions.toggleAesthetic(imageState.uploadId, phrase, isActive);
+      await actions.toggleAesthetic(phrase);
     } catch (err: any) {
-      uiActions.showError(err.message);
+      actions.showError(err.message);
     }
   };
 
   const handleConfirmUndo = async () => {
-    setUndoConfirmOpen(false);
     try {
-      await searchActions.confirmUndo(imageState.uploadId);
+      await actions.confirmUndo();
     } catch (err: any) {
-      uiActions.showError(err.message);
-      setUndoConfirmOpen(true);
+      // confirmUndo reopens the confirmation stage; surface the reason with a toast.
+      actions.showError(err.message);
     }
   };
-
-  useEffect(() => {
-    filterActions.seedColours(imageState.suggestedColours);
-  }, [imageState.suggestedColours]);
-
-  useEffect(() => {
-    filterActions.seedCategory(imageState.suggestedCategory);
-  }, [imageState.suggestedCategory]);
-
-  useEffect(() => {
-   if (imageState.showSuggestions && !uiState.preferencesOpen) {
-    uiActions.togglePreferences();
-  }
-}, [imageState.showSuggestions]);
-
-  // Seed the debug diagram as soon as the sheet opens, so the first tap has a baseline.
-  useEffect(() => {
-    if (uiState.traitSheetUrl) {
-      searchActions.loadTraitProfile(imageState.uploadId, uiState.traitSheetUrl);
-    }
-  }, [uiState.traitSheetUrl, imageState.uploadId]);
-
-  // Keep the undo preview in step with the server's feedback history for this upload.
-  useEffect(() => {
-    if (imageState.uploadId) {
-      searchActions.fetchLastFeedback(imageState.uploadId);
-    }
-  }, [imageState.uploadId]);
 
   return (
     <ErrorBoundary>
@@ -102,53 +77,50 @@ function App() {
       <Header />
 
       <SearchActionBar
-        confirmedKeyword={imageState.confirmedKeyword}
-        setConfirmedKeyword={imageActions.setConfirmedKeyword}
+        confirmedKeyword={analysis.confirmedKeyword}
+        setConfirmedKeyword={actions.setConfirmedKeyword}
         onImageUpload={handleImageUpload}
-        analyzing={imageState.loading}
+        analyzing={analysis.loading}
       />
 
-      {imageState.showSuggestions && (
+      {analysis.showSuggestions && (
         <KeywordSuggestions
-          keywords={imageState.suggestedKeywords}
-          confirmedKeyword={imageState.confirmedKeyword}
-          onSelectKeyword={imageActions.selectKeyword}
+          keywords={analysis.suggestedKeywords}
+          confirmedKeyword={analysis.confirmedKeyword}
+          onSelectKeyword={actions.selectKeyword}
         />
       )}
 
       <PreferencesPanel
         selectedSizes={filters.selectedSizes}
-        toggleSize={filterActions.toggleSize}
+        toggleSize={actions.toggleSize}
         maxPrice={filters.maxPrice}
-        setMaxPrice={filterActions.setMaxPrice}
+        setMaxPrice={actions.setMaxPrice}
         selectedCategory={filters.selectedCategory}
-        setSelectedCategory={filterActions.setSelectedCategory}
+        setSelectedCategory={actions.setSelectedCategory}
         selectedColors={filters.selectedColors}
-        toggleColour={filterActions.toggleColour}
+        toggleColour={actions.toggleColour}
         selectedConditions={filters.selectedConditions}
-        toggleCondition={filterActions.toggleCondition}
-        isOpen={uiState.preferencesOpen}
-        toggleOpen={uiActions.togglePreferences}
+        toggleCondition={actions.toggleCondition}
+        isOpen={ui.preferencesOpen}
+        toggleOpen={actions.togglePreferences}
         onScrape={handleScrape}
       />
 
       <StyleStrip
-        active={searchState.aesthetics}
-        disabled={!imageState.uploadId || searchState.products.length === 0}
-        busy={searchState.loading}
+        active={search.aesthetics}
+        disabled={!analysis.uploadId || search.products.length === 0}
+        busy={loading}
         onToggle={handleToggleAesthetic}
       />
 
-      {searchState.searching && <LoadingIndicator />}
+      {searching && <LoadingIndicator />}
 
-      {!searchState.loading && searchState.products.length > 0 && (
-        <ActiveFiltersSummary 
-          keyword={imageState.confirmedKeyword} 
-          filters={filters} 
-        />
+      {!loading && search.products.length > 0 && (
+        <ActiveFiltersSummary keyword={analysis.confirmedKeyword} filters={filters} />
       )}
 
-      {!searchState.fetchingMore && searchState.products.length > 0 && (
+      {!fetchingMore && search.products.length > 0 && (
         <div className="fixed-status-bar" role="status" aria-live="polite">
           <svg className="feedback-progress" viewBox="0 0 24 24" aria-hidden="true">
             <circle className="feedback-progress-track" cx="12" cy="12" r="9" />
@@ -159,74 +131,72 @@ function App() {
               r="9"
               style={{
                 strokeDasharray: 56.55,
-                strokeDashoffset: 56.55 * (1 - searchState.feedbacksSinceFetch / 3),
+                strokeDashoffset: 56.55 * (1 - search.feedbacksSinceFetch / FETCH_EVERY),
               }}
             />
           </svg>
           <span>
-            rate another {3 - searchState.feedbacksSinceFetch} item{3 - searchState.feedbacksSinceFetch === 1 ? '' : 's'} to rerank
+            rate another {FETCH_EVERY - search.feedbacksSinceFetch} item{FETCH_EVERY - search.feedbacksSinceFetch === 1 ? '' : 's'} to rerank
           </span>
         </div>
       )}
 
-      {searchState.fetchingMore && (
+      {fetchingMore && (
         <div className={`fixed-status-bar is-refreshing`} role="status" aria-live="polite">
           <span className="loading-spinner loading-spinner--sm" aria-hidden="true" />
           <span>Fetching more and reranking…</span>
         </div>
       )}
 
-      {searchState.undoPreview && !undoConfirmOpen && (
+      {search.undoStage === 'preview' && (
         <div className="fixed-status-bar undo-bar" role="status" aria-live="polite">
-          <span>↩ Undo last feedback: {searchState.undoPreview}</span>
-          <button className="undo-bar-action" onClick={() => setUndoConfirmOpen(true)}>
+          <span>↩ Undo last feedback: {undoPreview}</span>
+          <button className="undo-bar-action" onClick={actions.requestUndo}>
             Undo
           </button>
         </div>
       )}
 
-      {undoConfirmOpen && (
+      {(search.undoStage === 'confirming' || search.undoStage === 'undoing') && (
         <div className="fixed-status-bar undo-bar is-confirming" role="alert" aria-live="assertive">
-          <span>Confirm undo: {searchState.undoPreview}?</span>
-          <button className="undo-bar-action" onClick={() => setUndoConfirmOpen(false)}>
-            Cancel
-          </button>
+          <span>Confirm undo: {undoPreview}?</span>
+          {search.undoStage === 'confirming' && (
+            <button className="undo-bar-action" onClick={actions.cancelUndo}>
+              Cancel
+            </button>
+          )}
           <button
             className="undo-bar-action undo-bar-action--confirm"
             onClick={handleConfirmUndo}
-            disabled={searchState.confirmingUndo}
+            disabled={undoing}
           >
-            {searchState.confirmingUndo ? 'Undoing…' : 'Confirm'}
+            {undoing ? 'Undoing…' : 'Confirm'}
           </button>
         </div>
       )}
 
-      <ProductGrid 
-        products={searchState.products} 
-        onFeedback={(itemUrl, feedbackType) =>
-          searchActions.rerankProducts(imageState.uploadId, itemUrl, feedbackType)
-        }
-        onTune={uiActions.openTraitSheet}
-        tunedUrls={searchState.traitPicks}
-        disabled={searchState.loading}
+      <ProductGrid
+        products={search.products}
+        onFeedback={(itemUrl, feedbackType) => actions.submitFeedback(itemUrl, feedbackType)}
+        onTune={actions.openTraitSheet}
+        tunedUrls={search.traitPicks}
+        disabled={loading}
       />
 
       {tunedItem && (
         <TraitSheet
           item={tunedItem}
-          appliedPicks={searchState.traitPicks[tunedItem.url]}
-          profile={searchState.traitProfile}
-          profileError={searchState.profileError}
-          onClose={uiActions.closeTraitSheet}
-          onApply={(picks) =>
-            searchActions.applyTraitPicks(imageState.uploadId, tunedItem.url, picks)
-          }
+          appliedPicks={search.traitPicks[tunedItem.url]}
+          profile={search.traitProfile}
+          profileError={search.profileError}
+          onClose={actions.closeTraitSheet}
+          onApply={(picks) => actions.applyTraitPicks(tunedItem.url, picks)}
         />
       )}
 
-      {uiState.errorMessage && (
-        <div className="toast toast-error" role="alert" onClick={uiActions.clearError}>
-          {uiState.errorMessage}
+      {ui.errorMessage && (
+        <div className="toast toast-error" role="alert" onClick={actions.clearError}>
+          {ui.errorMessage}
           <button className="toast-close" aria-label="Dismiss">×</button>
         </div>
       )}
